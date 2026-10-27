@@ -614,6 +614,19 @@ function App() {
     });
     return success;
   }
+  async function deleteTemplate(id: string) {
+    const next = await api<Library>(
+      `/templates/${encodeURIComponent(id)}`,
+      "DELETE",
+    );
+    setLibrary(next);
+    if (id === selectedTemplateId) {
+      setSelectedTemplateId(null);
+      invalidateTemplate();
+      setStep(files.length ? 2 : 1);
+    }
+    setNotice(msg("templates.deleted"));
+  }
   if (!library)
     return (
       <div className="boot">
@@ -1653,6 +1666,7 @@ function App() {
                 api("/templates/validate", "POST", document)
               }
               register={registerTemplate}
+              remove={deleteTemplate}
               onReset={resetTemplate}
               onRegistered={(id) => {
                 setNotice(msg("templates.saved"));

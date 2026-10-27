@@ -96,3 +96,39 @@ def test_template_library_persists_independently_of_active_configuration(tmp_pat
         assert len(backup['templates']) == 2 and backup['template_configured'] is False
     with TestClient(service.app) as session:
         assert session.get('/api/config').json() == backup
+
+
+def test_delete_removes_only_the_requested_library_entry(client, tmp_path):
+    original_file = tmp_path / 'grades.sales-template.json'
+    original = json.dumps(document())
+    original_file.write_text(original)
+    client.post('/api/templates', json={**document(), 'file_name': original_file.name})
+    client.post('/api/templates', json=document('keep-me', 'Other grades'))
+    rule = make_rule(['日期', '金额'], {'date': '日期', 'amount': '金额'})
+    client.post('/api/rules', json=rule.model_dump())
+    client.put('/api/template', json=document()['template'])
+    batch, files = upload(client, [('students.csv', csv_bytes(['学号', '成绩'], [['S00001', 86]]))])
+    before = client.get('/api/config').json()
+
+    response = client.delete('/api/templates/student-grades')
+    assert response.status_code == 200
+    after = response.json()
+    assert [item['id'] for item in after['templates']] == ['keep-me']
+    assert after['rules'] == before['rules']
+    assert after['template'] == before['template']
+    assert client.get(f'/api/batches/{batch}').json()['files'] == files
+    assert original_file.read_text() == original
+    assert client.delete('/api/templates/student-grades').status_code == 404
+    assert client.get('/api/config').json() == after
+
+
+def test_deleting_the_last_template_persists_without_legacy_resurrection(tmp_path, monkeypatch):
+    monkeypatch.setattr(service, 'DATA_DIR', tmp_path / 'delete-state')
+    with TestClient(service.app) as session:
+        session.post('/api/templates', json=document())
+        session.put('/api/template', json=document()['template'])
+        assert session.delete('/api/templates/student-grades').json()['templates'] == []
+        backup = session.get('/api/config/export').json()
+    with TestClient(service.app) as session:
+        assert session.get('/api/config').json() == backup
+        assert session.get('/api/config').json()['templates'] == []

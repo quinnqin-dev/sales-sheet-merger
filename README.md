@@ -97,6 +97,8 @@ Use Chrome or Edge for the native save-location dialog. If your browser does not
 
 ![Editing a saved template and saving a JSON copy](frontend/public/guide/editor-en.webp)
 
+Use **Delete** to the right of **Edit template** to remove a library entry after confirmation. Its saved JSON file, imported files, and source rules are kept. If it was selected for the current batch, select another template before continuing.
+
 ## Reuse your setup
 
 Your template library and saved source rules remain available after restarting. Select a template explicitly for each new batch. On your next import, matching headers suggest a saved rule—even when their column order differs. Review and confirm the mapping before merging.

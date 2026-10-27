@@ -410,5 +410,12 @@
   "guide.preview.tip": "If anything is wrong, return to the source rules. Change the template through step 2; changing it requires the mappings to be confirmed again.",
   "guide.preview.alt": "Preview step showing correctly mapped student IDs, names, subjects, scores, and passed checks.",
   "guide.preview.caption": "4. Check a sample before processing all selected records.",
-  "templates.select": "Select template"
+  "templates.select": "Select template",
+  "templates.delete": "Delete",
+  "templates.deleteNamed": "Delete template {name}",
+  "templates.deleteTitle": "Delete this template?",
+  "templates.deleteDescription": "Remove “{name}” from the template library? Its saved JSON file will be kept on your computer.",
+  "templates.confirmDelete": "Confirm delete",
+  "templates.deleting": "Deleting template…",
+  "templates.deleted": "Template removed from the library. Its saved JSON file was kept."
 }

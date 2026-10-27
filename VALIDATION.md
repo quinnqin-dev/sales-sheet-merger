@@ -83,3 +83,9 @@ The required-template prompt now opens only from the confirmation-step Next acti
 ## Choose or create from the missing-template prompt
 
 The prompt now says “No output template selected” and provides Select template / New template actions in both languages. Selection closes the dialog and focuses the current selector; creation opens a blank editor directly, even when the library contains saved templates. Browser checks confirmed both actions, no language switcher in the dialog, no prompt on step entry, and imported-file/worksheet preservation after returning from the blank editor. The 13 frontend tests, 14 backend internationalization checks, and production build passed.
+
+## Template-library deletion
+
+Each template card now has Delete to the right of Edit template. The in-page confirmation names the template, focuses Cancel initially, follows the page language, and contains no language switcher. Confirm removes only the library entry via DELETE /api/templates/{id}; saved JSON files, source rules, and imported files are preserved. Deleting the current batch selection clears it and invalidates prior mapping confirmations and preview/results. Failures keep the dialog open with a visible error and allow retry.
+
+29 focused backend tests and 13 frontend tests passed, along with production build, formatting, and diff checks. New API tests cover targeted deletion, preservation of the original JSON file and unrelated records/rules/imports, missing IDs, and restart without resurrecting the last deleted template. Isolated browser checks verified button order, English and Chinese confirmation text, cancellation preserving both entries, a failed request leaving the dialog open and entries intact, successful retry removing just the selected entry, and cleared batch selection with the imported file and worksheet still present. Tests used disposable fixtures on port 8767; the existing service and its user templates were not deleted or restarted.

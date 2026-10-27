@@ -2154,3 +2154,23 @@ td {
     margin-left: auto;
   }
 }
+
+.template-library-card > .template-library-actions {
+  flex: 0 0 auto;
+}
+.btn.template-delete {
+  color: #a45e48;
+  border-color: #e6cfc5;
+}
+.btn.template-delete-confirm {
+  background: #a35643;
+  border-color: #a35643;
+}
+.btn.template-delete-confirm:hover:not(:disabled) {
+  background: #8c4535;
+}
+@media (max-width: 1050px) {
+  .template-library-card > .template-library-actions {
+    margin-left: auto;
+  }
+}

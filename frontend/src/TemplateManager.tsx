@@ -6,8 +6,16 @@ import {
   Upload,
   Settings2,
   Table2,
+  Trash2,
 } from "lucide-react";
-import { useI18n, msg, LocalizedError, type Message } from "./i18n";
+import {
+  useI18n,
+  msg,
+  LocalizedError,
+  messageFromError,
+  renderMessage,
+  type Message,
+} from "./i18n";
 import { TemplateEditor } from "./TemplateEditor";
 import {
   chooseTemplateFile,
@@ -28,6 +36,7 @@ type Props = {
   perform: (label: Message, work: () => Promise<void>) => Promise<void>;
   validate: (document: unknown) => Promise<TemplateDocument>;
   register: (document: SavedTemplate, replace: boolean) => Promise<void>;
+  remove: (id: string) => Promise<void>;
   onRegistered: (id: string) => void;
   onReset: () => Promise<boolean>;
 };
@@ -42,6 +51,8 @@ export function TemplateManager(props: Props) {
     replace: boolean;
   } | null>(null);
   const [replacement, setReplacement] = useState<SavedTemplate | null>(null);
+  const [deletion, setDeletion] = useState<SavedTemplate | null>(null);
+  const [deleteError, setDeleteError] = useState<Message | null>(null);
   const importRef = useRef<HTMLInputElement>(null);
   const edited = props.templates.find((item) => item.id === editing);
 
@@ -216,14 +227,30 @@ export function TemplateManager(props: Props) {
                         .join(" · ")}
                     </small>
                   </div>
-                  <button
-                    className="btn secondary"
-                    disabled={props.busy}
-                    onClick={() => setEditing(record.id)}
-                  >
-                    <Settings2 size={15} />
-                    {t("templates.edit")}
-                  </button>
+                  <div className="button-group template-library-actions">
+                    <button
+                      className="btn secondary"
+                      disabled={props.busy}
+                      onClick={() => setEditing(record.id)}
+                    >
+                      <Settings2 size={15} />
+                      {t("templates.edit")}
+                    </button>
+                    <button
+                      className="btn secondary template-delete"
+                      disabled={props.busy}
+                      aria-label={t("templates.deleteNamed", {
+                        name: record.template.name,
+                      })}
+                      onClick={() => {
+                        setDeleteError(null);
+                        setDeletion(record);
+                      }}
+                    >
+                      <Trash2 size={15} />
+                      {t("templates.delete")}
+                    </button>
+                  </div>
                 </article>
               ))
             ) : (
@@ -262,7 +289,89 @@ export function TemplateManager(props: Props) {
           }
         />
       )}
+      {deletion && (
+        <DeleteTemplateDialog
+          name={deletion.template.name}
+          busy={props.busy}
+          error={deleteError}
+          onCancel={() => setDeletion(null)}
+          onConfirm={() =>
+            void props.perform(msg("templates.deleting"), async () => {
+              setDeleteError(null);
+              try {
+                await props.remove(deletion.id);
+                setDeletion(null);
+              } catch (error) {
+                setDeleteError(messageFromError(error));
+                throw error;
+              }
+            })
+          }
+        />
+      )}
     </>
+  );
+}
+
+function DeleteTemplateDialog({
+  name,
+  busy,
+  error,
+  onCancel,
+  onConfirm,
+}: {
+  name: string;
+  busy: boolean;
+  error: Message | null;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="template-required-dialog"
+      aria-labelledby="delete-template-title"
+      aria-describedby="delete-template-description"
+      onCancel={(event) => {
+        event.preventDefault();
+        if (!busy) onCancel();
+      }}
+    >
+      <h2 id="delete-template-title">{t("templates.deleteTitle")}</h2>
+      <p id="delete-template-description">
+        {t("templates.deleteDescription", { name })}
+      </p>
+      {error && (
+        <div className="alert error" role="alert">
+          {renderMessage(error)}
+        </div>
+      )}
+      <div className="button-group">
+        <button
+          className="btn secondary"
+          autoFocus
+          disabled={busy}
+          onClick={onCancel}
+        >
+          {t("ui.cancel")}
+        </button>
+        <button
+          className="btn primary template-delete-confirm"
+          disabled={busy}
+          onClick={onConfirm}
+        >
+          <Trash2 size={16} />
+          {t(busy ? "templates.deleting" : "templates.confirmDelete")}
+        </button>
+      </div>
+    </dialog>
   );
 }
 

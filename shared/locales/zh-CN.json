@@ -410,5 +410,12 @@
   "guide.preview.tip": "发现问题可以返回调整规则。需要换模板时回到第二步；更换后，来源映射需要重新确认。",
   "guide.preview.alt": "预览检查步骤展示正确对应的学号、姓名、科目、分数及通过提示。",
   "guide.preview.caption": "④ 先检查示例，再处理全部记录。",
-  "templates.select": "选择模板"
+  "templates.select": "选择模板",
+  "templates.delete": "删除",
+  "templates.deleteNamed": "删除模板 {name}",
+  "templates.deleteTitle": "是否确认删除模板？",
+  "templates.deleteDescription": "确定从模板库删除“{name}”吗？已保存到电脑上的 JSON 文件会保留。",
+  "templates.confirmDelete": "确认删除",
+  "templates.deleting": "正在删除模板…",
+  "templates.deleted": "模板已从库中删除，电脑上的 JSON 文件已保留。"
 }

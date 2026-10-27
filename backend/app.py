@@ -243,6 +243,17 @@ def update_saved_template(template_id: str, document: SavedTemplate):
     return lib
 
 
+@app.delete('/api/templates/{template_id}')
+def delete_saved_template(template_id: str):
+    with STATE_LOCK:
+        lib = load_library()
+        if not any(t.id == template_id for t in lib.templates):
+            raise Problem(404, 'template_missing')
+        lib.templates = [t for t in lib.templates if t.id != template_id]
+        save_library(lib)
+    return lib
+
+
 @app.post('/api/rules')
 def put_rule(rule: Rule):
     with STATE_LOCK:
