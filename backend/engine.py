@@ -14,6 +14,7 @@ from pathlib import Path
 from openpyxl import load_workbook
 
 from .models import Rule, Template
+from .i18n import DomainError, localize_reason
 
 MAX_ROWS = 100_000
 MAX_COLUMNS = 1000
@@ -45,7 +46,7 @@ def dumps(value):
 def check_xlsx(path: Path):
     with zipfile.ZipFile(path) as archive:
         if sum(i.file_size for i in archive.infolist()) > 256 * 1024 * 1024:
-            raise ValueError('Excel 解压后超过 256 MB，请拆分文件')
+            raise DomainError('xlsx_size')
 
 
 def sheet_names(path):
@@ -71,7 +72,7 @@ def read_rows(path: Path, sheet: str, encoding='utf-8-sig'):
                 dialect = csv.excel
             for n, values in enumerate(csv.reader(handle, dialect), 1):
                 if len(values) > MAX_COLUMNS:
-                    raise ValueError('表格超过 1000 列')
+                    raise DomainError('column_limit')
                 yield n, values, set(), values
         return
     values_book = load_workbook(path, read_only=True, data_only=True)
@@ -85,7 +86,7 @@ def read_rows(path: Path, sheet: str, encoding='utf-8-sig'):
         for n, pair in enumerate(zip_longest(values_sheet.rows, formulas_sheet.rows, fillvalue=()), 1):
             value_cells, formula_cells = pair
             if max(len(value_cells), len(formula_cells)) > MAX_COLUMNS:
-                raise ValueError('表格超过 1000 列')
+                raise DomainError('column_limit')
             values, raw, missing = [], [], set()
             for i, (cached, source) in enumerate(zip_longest(value_cells, formula_cells)):
                 value = cached.value if cached else None
@@ -111,70 +112,70 @@ def is_blank(values):
 
 def inspect_sheet(path, sheet, header_row, encoding):
     if not 1 <= header_row <= 1000:
-        raise ValueError('表头行必须在 1–1000 之间')
+        raise DomainError('header_range')
     headers, sample, count, blanks, physical = None, [], 0, 0, 0
     for n, values, missing, raw in read_rows(path, sheet, encoding):
         physical += 1
         if physical > 200_000:
-            raise ValueError('工作表超过 20 万物理行，请移除多余空行或拆分文件')
+            raise DomainError('physical_row_limit')
         if n == header_row:
             headers = [str(wire(v)).strip() if v is not None else '' for v in values]
             while headers and not headers[-1]:
                 headers.pop()
             if missing:
-                raise ValueError('表头包含没有计算缓存的公式')
+                raise DomainError('header_formula')
         elif n > header_row:
             if is_blank(raw):
                 blanks += 1
                 continue
             count += 1
             if count > MAX_ROWS:
-                raise ValueError('工作表超过 10 万行，请拆分文件')
+                raise DomainError('sheet_row_limit')
             if len(sample) < 20:
                 sample.append({'row': n, 'values': [wire(v) for v in raw]})
     if not headers or not any(headers):
-        raise ValueError('找不到表头，请调整表头行')
+        raise DomainError('header_missing')
     normalized = normalized_headers(headers)
     if any(not h for h in normalized) or len(set(normalized)) != len(normalized):
-        raise ValueError('表头包含空列名或重复列名，请修正表头或调整表头行')
+        raise DomainError('invalid_headers')
     return {'name': sheet, 'header_row': header_row, 'headers': headers,
             'sample': sample, 'row_count': count, 'blank_count': blanks}
 
 
 def validate_rule(rule: Rule, template: Template, headers):
     if header_signature(rule.headers) != header_signature(headers):
-        raise ValueError('规则表头与当前工作表不一致，请重新配置并确认规则')
+        raise DomainError('rule_headers')
     ids = {c.id for c in template.columns}
     if {m.target_id for m in rule.mappings} != ids:
-        raise ValueError('目标模板已变化，请为每个目标列重新确认映射')
+        raise DomainError('template_changed')
     for m in rule.mappings:
         if m.mode == 'source' and (m.source_index is None or m.source_index >= len(rule.headers)):
-            raise ValueError('源列映射不完整，请选择源列或使用留空/固定值')
+            raise DomainError('incomplete_mapping')
 
 
 def parse_number(value, style):
     if isinstance(value, bool) or isinstance(value, (datetime, date)):
-        raise ValueError('不是有效数字')
+        raise DomainError('invalid_number')
     text = str(value).strip()
     if style == 'comma' and ',' in text:
         if not re.fullmatch(r'[+-]?\d{1,3}(,\d{3})+(\.\d+)?', text):
-            raise ValueError('千分位格式不正确，预期 1,234.56')
+            raise DomainError('comma_number')
         text = text.replace(',', '')
     elif style == 'european' and isinstance(value, str):
         if not re.fullmatch(r'[+-]?(\d+|\d{1,3}(\.\d{3})+)(,\d+)?', text):
-            raise ValueError('数字格式不正确，预期 1.234,56')
+            raise DomainError('european_number')
         text = text.replace('.', '').replace(',', '.')
     if not re.fullmatch(r'[+-]?(\d+(\.\d*)?|\.\d+)([eE][+-]?\d+)?', text):
-        raise ValueError('不是有效数字，请确认分隔符并先替换货币符号')
+        raise DomainError('number_symbols')
     try:
         result = Decimal(text)
     except InvalidOperation:
-        raise ValueError('不是有效数字') from None
+        raise DomainError('invalid_number') from None
     if not result.is_finite() or abs(result) > Decimal('1e15') or result.as_tuple().exponent < -12:
-        raise ValueError('数值超出支持范围（绝对值 10¹⁵、小数 12 位）')
+        raise DomainError('number_range')
     significant = ''.join(str(d) for d in result.as_tuple().digits).rstrip('0')
     if len(significant) > 15:
-        raise ValueError('超过 Excel 的 15 位有效数字，请将标识符目标列设为文本')
+        raise DomainError('number_precision')
     return result
 
 
@@ -189,7 +190,7 @@ def convert_row(values, missing, rule, template, actual_headers):
                 source_name = normalized_headers([rule.headers[m.source_index]])[0]
                 index = actual_positions[source_name]
                 if index in missing:
-                    raise ValueError('公式没有已保存的计算结果，请先用 Excel 重新计算并保存')
+                    raise DomainError('formula_cache')
                 value = values[index] if index < len(values) else None
             elif m.mode == 'fixed':
                 value = m.fixed
@@ -205,15 +206,15 @@ def convert_row(values, missing, rule, template, actual_headers):
                     break
             if value is None or value == '':
                 if col.required:
-                    raise ValueError('必填项为空')
+                    raise DomainError('required_empty')
                 result.append(None)
                 continue
             if col.type == 'text':
                 value = str(wire(value))
                 if len(value) > 32767:
-                    raise ValueError('文本超过 Excel 单元格的 32767 字符限制')
+                    raise DomainError('text_length')
                 if ILLEGAL_XML.search(value):
-                    raise ValueError('文本包含 Excel 无法保存的控制字符，请配置精确值替换')
+                    raise DomainError('text_control')
             elif col.type == 'number':
                 value = parse_number(value, m.number_style)
             elif col.type == 'date':
@@ -223,11 +224,13 @@ def convert_row(values, missing, rule, template, actual_headers):
                     try:
                         value = datetime.strptime(str(value), m.date_format).date()
                     except ValueError:
-                        raise ValueError(f'日期格式不符，预期 {m.date_format}') from None
+                        raise DomainError('invalid_date', format=m.date_format) from None
             result.append(wire(value))
         except (ValueError, KeyError, IndexError) as exc:
             result.append(None)
-            reasons.append({'column': col.name, 'reason': str(exc)})
+            code = exc.code if isinstance(exc, DomainError) else 'invalid_value'
+            params = exc.params if isinstance(exc, DomainError) else {}
+            reasons.append(localize_reason({'column': col.name, 'code': code, 'params': params}))
     return result, reasons
 
 

@@ -13,6 +13,8 @@ from decimal import Decimal, getcontext
 from pathlib import Path
 
 from fastapi import FastAPI, File, HTTPException, Request, UploadFile
+from fastapi.exceptions import RequestValidationError
+from starlette.exceptions import HTTPException as StarletteHTTPException
 from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from openpyxl import Workbook
@@ -23,6 +25,7 @@ from pydantic import ValidationError
 
 from .engine import (ILLEGAL_XML, MAX_ROWS, convert_row, dumps, duplicate_key,
                      inspect_sheet, is_blank, read_rows, sheet_names, validate_rule, wire)
+from .i18n import (LOCALE, DomainError, Problem, descriptor, error_fields, localize_reason, resolve_locale, text)
 from .models import DEFAULT_TEMPLATE, InspectRequest, Library, Rule, RunRequest, Template
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -51,7 +54,7 @@ def load_library():
             try:
                 return Library.model_validate_json(library_path().read_text('utf-8'))
             except (ValueError, OSError):
-                raise HTTPException(500, '规则库无法读取，原文件已保留，请检查或从备份恢复') from None
+                raise Problem(500, 'library_unreadable') from None
         return Library(template=DEFAULT_TEMPLATE)
 
 
@@ -68,7 +71,7 @@ async def lifespan(app):
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
     except BlockingIOError:
         handle.close()
-        raise RuntimeError('已有归表实例正在使用此数据目录') from None
+        raise RuntimeError(text('instance_running')) from None
     for item in scratch.iterdir():
         if item.is_dir():
             shutil.rmtree(item)
@@ -87,38 +90,69 @@ async def lifespan(app):
         handle.close()
 
 
-app = FastAPI(title='归表 · 本机销售表合并', lifespan=lifespan)
+app = FastAPI(title='Sales Sheet Merger', lifespan=lifespan)
 
 
 @app.middleware('http')
 async def local_only(request: Request, call_next):
+    token = LOCALE.set(resolve_locale(request.headers.get('accept-language')))
+    try:
+        return await local_request(request, call_next)
+    finally:
+        LOCALE.reset(token)
+
+
+async def local_request(request, call_next):
     host = request.headers.get('host', '').split(':')[0]
     if host not in ('127.0.0.1', 'localhost', 'testserver'):
-        return JSONResponse({'detail': '仅允许本机访问'}, 403)
+        return problem_response(403, 'local_only')
     origin = request.headers.get('origin')
     if origin and origin not in (f'http://{request.headers.get("host")}', 'http://127.0.0.1:5173', 'http://localhost:5173'):
-        return JSONResponse({'detail': '不允许的访问来源'}, 403)
+        return problem_response(403, 'invalid_origin')
     response = await call_next(request)
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['Referrer-Policy'] = 'no-referrer'
+    response.headers['Content-Language'] = LOCALE.get()
     return response
+
+
+def problem_response(status, code, params=None):
+    return JSONResponse({'detail': text(code, params), 'code': code, 'params': params or {}}, status,
+                        headers={'Content-Language': LOCALE.get()})
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_error(request, exc):
+    if isinstance(exc, Problem):
+        return problem_response(exc.status_code, exc.code, exc.params)
+    return JSONResponse({'detail': exc.detail}, exc.status_code)
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_error(request, exc):
+    return problem_response(422, 'invalid_config')
 
 
 def batch_for(batch_id):
     if batch_id not in BATCHES:
-        raise HTTPException(404, '批次不存在或已过期，请重新导入')
+        raise Problem(404, 'batch_missing')
     return BATCHES[batch_id]
 
 
 def file_for(batch_id, file_id):
     batch = batch_for(batch_id)
     if file_id not in batch['files']:
-        raise HTTPException(404, '文件不存在')
+        raise Problem(404, 'file_missing')
     return batch['files'][file_id]
 
 
 def public_file(item):
-    return {k: v for k, v in item.items() if k != 'path'}
+    result = {k: v for k, v in item.items() if k != 'path'}
+    if item.get('error_code'):
+        result.update(error_fields(item['error_code'], item.get('error_params')))
+    result['sheets'] = [{**s, **error_fields(s['error_code'], s.get('error_params'))}
+                        if s.get('error_code') else s for s in item['sheets']]
+    return result
 
 
 def inspect_file(item, options):
@@ -127,27 +161,19 @@ def inspect_file(item, options):
     try:
         names = sheet_names(item['path'])
         if len(names) > 100:
-            raise ValueError('工作表超过 100 个，请拆分文件')
+            raise DomainError('too_many_sheets')
         sheets = []
         for name in names:
             header_row = options.header_rows.get(name, 1)
             try:
                 sheets.append(inspect_sheet(item['path'], name, header_row, options.encoding))
             except Exception as exc:
-                sheets.append({'name': name, 'header_row': header_row, 'error': friendly_error(exc)})
+                sheets.append({'name': name, 'header_row': header_row, **error_fields(*descriptor(exc))})
         item['sheets'] = sheets
-        item['error'] = '所有工作表均无法读取，请调整表头或移除文件' if all(s.get('error') for s in sheets) else None
+        item.update(error_fields('all_sheets_invalid' if all(s.get('error') for s in sheets) else None))
     except Exception as exc:
-        item['error'] = friendly_error(exc)
+        item.update(error_fields(*descriptor(exc)))
         item['sheets'] = []
-
-
-def friendly_error(exc):
-    if isinstance(exc, UnicodeError):
-        return '字符编码无法读取，请尝试 GB18030 后重新检查'
-    if isinstance(exc, ValueError):
-        return str(exc)[:240]
-    return '文件无法读取，可能已损坏、加密或并非真正的 Excel / CSV 文件'
 
 
 @app.get('/api/health')
@@ -176,7 +202,7 @@ def put_rule(rule: Rule):
         validate_rule_or_400(rule, lib.template, rule.headers)
         lib.rules = [r for r in lib.rules if r.id != rule.id] + [rule]
         if len(lib.rules) > 500:
-            raise HTTPException(400, '最多保存 500 条规则')
+            raise Problem(400, 'rule_limit')
         save_library(lib)
     return lib
 
@@ -199,11 +225,11 @@ def export_config():
 async def import_config(request: Request):
     body = await request.body()
     if len(body) > 2 * 1024 * 1024:
-        raise HTTPException(413, '规则文件超过 2 MB')
+        raise Problem(413, 'library_size')
     try:
         lib = Library.model_validate_json(body)
     except ValidationError:
-        raise HTTPException(400, '规则文件格式或版本不支持') from None
+        raise Problem(400, 'library_format') from None
     with STATE_LOCK:
         save_library(lib)
     return lib
@@ -212,7 +238,7 @@ async def import_config(request: Request):
 @app.post('/api/batches')
 def create_batch():
     if len(BATCHES) >= 50:
-        raise HTTPException(400, '本次运行已有 50 个批次，请重启工具清理临时文件')
+        raise Problem(400, 'batch_limit')
     batch_id = uuid.uuid4().hex
     directory = WORK_DIR / batch_id
     directory.mkdir()
@@ -231,31 +257,31 @@ async def upload_files(batch_id: str, files: list[UploadFile] = File(...)):
     # Reservation prevents concurrent uploads from bypassing the file-count limit.
     with STATE_LOCK:
         if len(batch['files']) + len(files) > 30:
-            raise HTTPException(400, '每批最多 30 个文件')
+            raise Problem(400, 'file_limit')
         items = []
         for uploaded in files:
             file_id = uuid.uuid4().hex
-            name = Path(uploaded.filename or '未命名').name
+            name = Path(uploaded.filename or 'Untitled').name
             suffix = Path(name).suffix.lower()
             item = {'id': file_id, 'name': name, 'encoding': 'utf-8-sig', 'header_rows': {},
-                    'sheets': [], 'error': '正在读取', 'size': 0,
+                    'sheets': [], **error_fields('reading_file'), 'size': 0,
                     'path': batch['directory'] / f'{file_id}{suffix}'}
             batch['files'][file_id] = item
             items.append((uploaded, item, suffix))
     for uploaded, item, suffix in items:
         try:
             if suffix not in ('.xlsx', '.csv'):
-                item['error'] = '仅支持 .xlsx 和 .csv；旧版 .xls 请先另存为 .xlsx'
+                item.update(error_fields('unsupported_file'))
                 continue
             with item['path'].open('wb') as dest:
                 while chunk := await uploaded.read(1024 * 1024):
                     item['size'] += len(chunk)
                     if item['size'] > 50 * 1024 * 1024:
-                        raise ValueError('单个文件超过 50 MB，请拆分文件')
+                        raise DomainError('file_size')
                     dest.write(chunk)
             await asyncio.to_thread(inspect_file, item, InspectRequest())
         except Exception as exc:
-            item['error'] = friendly_error(exc)
+            item.update(error_fields(*descriptor(exc)))
             item['path'].unlink(missing_ok=True)
         finally:
             await uploaded.close()
@@ -272,7 +298,7 @@ def reinspect_file(batch_id: str, file_id: str, options: InspectRequest):
 @app.delete('/api/batches/{batch_id}/files/{file_id}')
 def remove_file(batch_id: str, file_id: str):
     if any(j['batch_id'] == batch_id and j['status'] == 'running' for j in JOBS.values()):
-        raise HTTPException(409, '正在合并，请等待完成后再移除文件')
+        raise Problem(409, 'remove_while_running')
     item = file_for(batch_id, file_id)
     item['path'].unlink(missing_ok=True)
     del batch_for(batch_id)['files'][file_id]
@@ -283,30 +309,30 @@ def validate_rule_or_400(rule, template, headers):
     try:
         validate_rule(rule, template, headers)
     except ValueError as exc:
-        raise HTTPException(400, str(exc)) from None
+        raise Problem(400, exc.code if isinstance(exc, DomainError) else 'incomplete_mapping', **(exc.params if isinstance(exc, DomainError) else {})) from None
 
 
 def prepare(batch_id, request):
     batch = batch_for(batch_id)
     if any(f['error'] for f in batch['files'].values()):
-        raise HTTPException(400, '请先明确移除无法读取的文件，或修正编码后重新检查')
+        raise Problem(400, 'unreadable_files')
     selected_keys, prepared, total = set(), [], 0
     for selection in request.selections:
         key = (selection.file_id, selection.sheet)
         if key in selected_keys:
-            raise HTTPException(400, '同一工作表不能重复选择')
+            raise Problem(400, 'duplicate_selection')
         selected_keys.add(key)
         item = file_for(batch_id, selection.file_id)
         sheet = next((s for s in item['sheets'] if s['name'] == selection.sheet), None)
         if not sheet or sheet.get('error'):
-            raise HTTPException(400, '选中的工作表无法读取，请检查表头和格式')
+            raise Problem(400, 'sheet_unreadable')
         if sheet['header_row'] != selection.header_row:
-            raise HTTPException(400, '表头行已变化，请重新预览')
+            raise Problem(400, 'header_changed')
         validate_rule_or_400(selection.rule, request.template, sheet['headers'])
         total += sheet['row_count']
         prepared.append((copy.deepcopy(item), copy.deepcopy(sheet), selection.model_copy(deep=True)))
     if total > MAX_ROWS:
-        raise HTTPException(400, '选中数据合计超过 10 万行，请减少文件或工作表')
+        raise Problem(400, 'total_row_limit')
     return prepared, total
 
 
@@ -335,6 +361,7 @@ def connect(job):
 def run_job(job, prepared, request):
     db = None
     try:
+        locale_token = LOCALE.set(job['locale'])
         getcontext().prec = 50  # This background thread owns its decimal context.
         db = connect(job)
         db.executescript('''
@@ -358,7 +385,7 @@ def run_job(job, prepared, request):
                 source['read'] += 1
                 job['processed'] += 1
                 if job['processed'] > MAX_ROWS:
-                    raise ValueError('数据合计超过 10 万行')
+                    raise DomainError('total_row_limit')
                 kind = 'issues' if reasons else 'valid'
                 source[kind] += 1
                 key = duplicate_key(result, request.template) if not reasons else None
@@ -378,17 +405,18 @@ def run_job(job, prepared, request):
                           'issues': sum(s['issues'] for s in sources), 'blank': sum(s['blank'] for s in sources),
                           'duplicate_rows': dup[0], 'duplicate_extra': dup[1], 'duplicate_groups': dup[2],
                           'totals': {k: wire(v) for k, v in totals.items()}, 'sources': sources}
-        job['phase'] = '正在生成 Excel'
+        job['phase_code'] = 'phase_exporting'
         export_workbook(job, db, request.template)
         job['status'] = 'done'
-        job['phase'] = '处理完成'
+        job['phase_code'] = 'phase_done'
     except Exception as exc:
         job['status'] = 'failed'
-        job['error'] = str(exc) if isinstance(exc, ValueError) else '处理失败，请检查源文件并重试'
+        job.update(error_fields(exc.code, exc.params) if isinstance(exc, DomainError) else error_fields('processing_failed'))
     finally:
         if db:
             db.close()
         RUN_LOCK.release()
+        LOCALE.reset(locale_token)
 
 
 def text_cell(ws, value, heading=False):
@@ -409,9 +437,9 @@ def append_text(ws, values, heading=False):
 
 def export_workbook(job, db, template):
     book = Workbook(write_only=True)
-    details = book.create_sheet('销售明细')
-    issues = book.create_sheet('问题行')
-    summary = book.create_sheet('处理汇总')
+    details = book.create_sheet(text('sheet_sales'))
+    issues = book.create_sheet(text('sheet_issues'))
+    summary = book.create_sheet(text('sheet_summary'))
     for sheet in (details, issues, summary):
         sheet.freeze_panes = 'A2'
         for index in range(1, min(30, len(template.columns) + 6) + 1):
@@ -419,8 +447,8 @@ def export_workbook(job, db, template):
     append_text(details, [c.name for c in template.columns], True)
     max_raw = db.execute('SELECT COALESCE(MAX(LENGTH(raw)),0) FROM rows WHERE kind="issues"').fetchone()[0]
     raw_parts = max(1, (max_raw + 29999) // 30000)
-    raw_headers = ['原始值（JSON）'] if raw_parts == 1 else [f'原始值JSON片段 {i+1}（按顺序拼接）' for i in range(raw_parts)]
-    append_text(issues, ['文件', '工作表', '原始行号', '问题说明'] + raw_headers + [c.name for c in template.columns], True)
+    raw_headers = [text('raw_json')] if raw_parts == 1 else [text('raw_part', {'index': i+1}) for i in range(raw_parts)]
+    append_text(issues, [text('file'), text('sheet'), text('original_row'), text('issue_reason')] + raw_headers + [c.name for c in template.columns], True)
     cursor = db.execute('SELECT * FROM rows ORDER BY id')
     for row in cursor:
         values = json.loads(row['data'])
@@ -428,7 +456,7 @@ def export_workbook(job, db, template):
             reasons = json.loads(row['reasons'])
             parts = [row['raw'][i * 30000:(i + 1) * 30000] for i in range(raw_parts)]
             append_text(issues, [row['file'], row['sheet'], row['original_row'],
-                                '；'.join(f'{r["column"]}：{r["reason"]}' for r in reasons)] + parts + values)
+                                ('; ' if LOCALE.get() == 'en' else '；').join(f'{r["column"]}: {text(r["code"], r.get("params"))}' for r in reasons)] + parts + values)
         else:
             cells = []
             for value, col in zip(values, template.columns):
@@ -443,20 +471,20 @@ def export_workbook(job, db, template):
                 cells.append(cell)
             details.append(cells)
     details.auto_filter.ref = f'A1:{get_column_letter(len(template.columns))}{job["summary"]["valid"] + 1}'
-    append_text(summary, ['处理指标', '结果'], True)
-    labels = [('read', '读取数据行'), ('valid', '有效行'), ('issues', '问题行'), ('blank', '跳过空行'),
-              ('duplicate_rows', '重复组内行数（全部保留）'), ('duplicate_extra', '重复的额外行数')]
+    append_text(summary, [text('metric'), text('result')], True)
+    labels = [('read', text('read_rows')), ('valid', text('valid_rows')), ('issues', text('sheet_issues')), ('blank', text('blank_rows')),
+              ('duplicate_rows', text('duplicate_rows')), ('duplicate_extra', text('duplicate_extra'))]
     for key, label in labels:
         append_text(summary, [label, job['summary'][key]])
     for col in template.columns:
         if col.type == 'number':
-            append_text(summary, [f'{col.name}合计（十进制精确文本）', job['summary']['totals'][col.id]])
+            append_text(summary, [text('exact_total', {'column': col.name}), job['summary']['totals'][col.id]])
     append_text(summary, [])
-    append_text(summary, ['文件', '工作表', '读取行', '有效行', '问题行', '跳过空行'], True)
+    append_text(summary, [text('file'), text('sheet'), text('read_rows'), text('valid_rows'), text('sheet_issues'), text('blank_rows')], True)
     for source in job['summary']['sources']:
         append_text(summary, [source[k] for k in ('file', 'sheet', 'read', 'valid', 'issues', 'blank')])
     append_text(summary, [])
-    append_text(summary, ['明细导出行号', '文件', '工作表', '原始行号', '重复组（空白表示无重复）'], True)
+    append_text(summary, [text('export_row'), text('file'), text('sheet'), text('original_row'), text('duplicate_group')], True)
     for index, row in enumerate(db.execute('SELECT r.*,d.count AS duplicate_count FROM rows r LEFT JOIN duplicates d ON r.fingerprint=d.fingerprint WHERE kind="valid" ORDER BY r.id'), 2):
         append_text(summary, [index, row['file'], row['sheet'], row['original_row'], row['fingerprint'][:12] if row['duplicate_count'] > 1 else ''])
     book.save(job['output'])
@@ -466,9 +494,9 @@ def export_workbook(job, db, template):
 def start_job(batch_id: str, request: RunRequest):
     prepared, total = prepare(batch_id, request)
     if not RUN_LOCK.acquire(blocking=False):
-        raise HTTPException(409, '已有批次正在合并，请等待完成')
+        raise Problem(409, 'merge_running')
     job_id = uuid.uuid4().hex
-    job = {'id': job_id, 'batch_id': batch_id, 'status': 'running', 'phase': '正在转换与检查',
+    job = {'id': job_id, 'batch_id': batch_id, 'status': 'running', 'phase_code': 'phase_converting', 'locale': LOCALE.get(),
            'processed': 0, 'total': total, 'summary': None, 'error': None,
            'template': request.template.model_dump(), 'db': WORK_DIR / f'{job_id}.sqlite',
            'output': WORK_DIR / f'{job_id}.xlsx'}
@@ -479,13 +507,17 @@ def start_job(batch_id: str, request: RunRequest):
 
 
 def public_job(job):
-    return {k: v for k, v in job.items() if k not in ('db', 'output')}
+    result = {k: v for k, v in job.items() if k not in ('db', 'output')}
+    result['phase'] = text(job['phase_code'])
+    if job.get('error_code'):
+        result.update(error_fields(job['error_code'], job.get('error_params')))
+    return result
 
 
 def job_for(job_id):
     job = JOBS.get(job_id)
     if not job:
-        raise HTTPException(404, '任务不存在或已过期')
+        raise Problem(404, 'job_missing')
     return job
 
 
@@ -498,9 +530,9 @@ def get_job(job_id: str):
 def get_rows(job_id: str, kind: str = 'valid', page: int = 1, page_size: int = 50, duplicates_only: bool = False):
     job = job_for(job_id)
     if job['status'] != 'done':
-        raise HTTPException(409, '任务尚未完成')
+        raise Problem(409, 'job_incomplete')
     if kind not in ('valid', 'issues') or page < 1 or not 1 <= page_size <= 200:
-        raise HTTPException(400, '分页参数无效')
+        raise Problem(400, 'invalid_pagination')
     db = connect(job)
     try:
         condition = 'r.kind=?' + (' AND d.count>1' if duplicates_only else '')
@@ -508,7 +540,7 @@ def get_rows(job_id: str, kind: str = 'valid', page: int = 1, page_size: int = 5
         rows = db.execute(f'SELECT r.*,d.count AS duplicate_count FROM rows r LEFT JOIN duplicates d ON r.fingerprint=d.fingerprint WHERE {condition} ORDER BY r.id LIMIT ? OFFSET ?',
                           (kind, page_size, (page - 1) * page_size)).fetchall()
         return {'total': total, 'rows': [{'file': r['file'], 'sheet': r['sheet'], 'row': r['original_row'],
-                    'values': json.loads(r['data']), 'raw': json.loads(r['raw']), 'reasons': json.loads(r['reasons']),
+                    'values': json.loads(r['data']), 'raw': json.loads(r['raw']), 'reasons': [localize_reason(reason) for reason in json.loads(r['reasons'])],
                     'duplicate_group': r['fingerprint'][:12] if (r['duplicate_count'] or 0) > 1 else None} for r in rows]}
     finally:
         db.close()
@@ -518,7 +550,7 @@ def get_rows(job_id: str, kind: str = 'valid', page: int = 1, page_size: int = 5
 def download(job_id: str):
     job = job_for(job_id)
     if job['status'] != 'done':
-        raise HTTPException(409, '任务尚未完成')
+        raise Problem(409, 'job_incomplete')
     return FileResponse(job['output'], filename=f'sales-merged-{date.today().isoformat()}.xlsx',
                         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 

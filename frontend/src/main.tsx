@@ -1,3 +1,15 @@
+import {
+  I18nProvider,
+  useI18n,
+  translate as t,
+  getLocale,
+  msg,
+  renderMessage,
+  errorMessage,
+  messageFromError,
+  LocalizedError,
+  type Message,
+} from "./i18n";
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
@@ -32,13 +44,32 @@ import {
 } from "lucide-react";
 import "./style.css";
 
+function LanguageSwitcher() {
+  const { locale, setLocale } = useI18n();
+  return (
+    <label className="language-switch">
+      <span aria-hidden="true">EN / 中</span>
+      <select
+        aria-label="Language / 语言"
+        value={locale}
+        onChange={(e) => setLocale(e.target.value as "en" | "zh-CN")}
+      >
+        <option value="en">English</option>
+        <option value="zh-CN">简体中文</option>
+      </select>
+    </label>
+  );
+}
 type Column = {
   id: string;
   name: string;
   type: "text" | "number" | "date";
   required: boolean;
 };
-type Template = { name: string; columns: Column[] };
+type Template = {
+  name: string;
+  columns: Column[];
+};
 type Mapping = {
   target_id: string;
   mode: "source" | "fixed" | "empty";
@@ -46,7 +77,10 @@ type Mapping = {
   fixed: string;
   trim: boolean;
   fill: string;
-  replacements: { before: string; after: string }[];
+  replacements: {
+    before: string;
+    after: string;
+  }[];
   date_format: string;
   number_style: string;
 };
@@ -56,15 +90,24 @@ type Rule = {
   headers: string[];
   mappings: Mapping[];
 };
-type Library = { version: 1; template: Template; rules: Rule[] };
+type Library = {
+  version: 1;
+  template: Template;
+  rules: Rule[];
+};
 type Sheet = {
   name: string;
   header_row: number;
   headers: string[];
-  sample: { row: number; values: unknown[] }[];
+  sample: {
+    row: number;
+    values: unknown[];
+  }[];
   row_count: number;
   blank_count: number;
   error?: string;
+  error_code?: string;
+  error_params?: Record<string, unknown>;
 };
 type SourceFile = {
   id: string;
@@ -73,16 +116,27 @@ type SourceFile = {
   encoding: string;
   header_rows: Record<string, number>;
   error?: string;
+  error_code?: string;
+  error_params?: Record<string, unknown>;
   sheets: Sheet[];
 };
-type Assignment = { enabled: boolean; rule: Rule | null; confirmed: boolean };
+type Assignment = {
+  enabled: boolean;
+  rule: Rule | null;
+  confirmed: boolean;
+};
 type ResultRow = {
   file: string;
   sheet: string;
   row: number;
   values: unknown[];
   raw: unknown[];
-  reasons: { column: string; reason: string }[];
+  reasons: {
+    column: string;
+    reason: string;
+    code?: string;
+    params?: Record<string, unknown>;
+  }[];
   duplicate_group?: string;
 };
 type Summary = {
@@ -107,18 +161,21 @@ type Job = {
   id: string;
   status: string;
   phase: string;
+  phase_code: string;
+  locale: "en" | "zh-CN";
   processed: number;
   total: number;
   summary: Summary | null;
   error?: string;
+  error_code?: string;
+  error_params?: Record<string, unknown>;
   template: Template;
 };
 const keyFor = (f: SourceFile, s: Sheet) => `${f.id}:${s.name}`;
-const fmt = (n: number) => n.toLocaleString("zh-CN");
+const fmt = (n: number) => n.toLocaleString(getLocale());
 const normal = (s: string) => s.normalize("NFKC").trim().toLowerCase();
 const signature = (h: string[]) => JSON.stringify(h.map(normal).sort());
 const show = (v: unknown) => (v === null || v === undefined ? "—" : String(v));
-
 async function api<T>(
   path: string,
   method = "GET",
@@ -127,42 +184,64 @@ async function api<T>(
   const isForm = body instanceof FormData;
   const res = await fetch(`/api${path}`, {
     method,
-    headers:
-      body !== undefined && !isForm
+    headers: {
+      "Accept-Language": getLocale(),
+      ...(body !== undefined && !isForm
         ? { "Content-Type": "application/json" }
-        : undefined,
+        : {}),
+    },
     body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
   });
   if (!res.ok) {
-    let message = `请求失败 (${res.status})`;
+    let problem: Message = msg("ui.requestFailed", { p0: res.status });
     try {
       const result = await res.json();
-      message =
-        typeof result.detail === "string"
-          ? result.detail
-          : "配置格式不正确，请检查输入";
+      problem = msg(result.code || "invalid_config", result.params);
     } catch {
-      /* keep status */
+      /* Keep the HTTP status if the response is not JSON. */
     }
-    throw new Error(message);
+    throw new LocalizedError(problem.code, problem.params);
   }
   return res.json();
 }
-
 const aliases: Record<string, string[]> = {
-  date: ["日期", "销售日期", "交易日期", "下单日期", "date", "sale_date"],
-  order_id: ["订单号", "订单编号", "order_id", "order no"],
+  date: [
+    "日期",
+    "销售日期",
+    "交易日期",
+    "下单日期",
+    "date",
+    "sale_date",
+    "sale date",
+    "sales date",
+  ],
+  order_id: [
+    "订单号",
+    "订单编号",
+    "order_id",
+    "order no",
+    "order number",
+    "order id",
+  ],
   sku: ["商品编码", "商品编号", "sku", "货号"],
-  product: ["商品名称", "产品名称", "品名", "product"],
+  product: ["商品名称", "产品名称", "品名", "product", "product name"],
   quantity: ["数量", "销量", "销售数量", "quantity", "qty"],
-  price: ["单价", "销售单价", "price"],
-  amount: ["销售额", "销售金额", "实付金额", "金额", "amount"],
-  channel: ["渠道", "销售渠道", "平台", "channel"],
+  price: ["单价", "销售单价", "price", "unit price"],
+  amount: [
+    "销售额",
+    "销售金额",
+    "实付金额",
+    "金额",
+    "amount",
+    "sales amount",
+    "revenue",
+  ],
+  channel: ["渠道", "销售渠道", "平台", "channel", "sales channel", "platform"],
 };
 function newRule(
   headers: string[],
   template: Template,
-  name = "新来源规则",
+  name = t("ui.newSourceRule"),
 ): Rule {
   return {
     id: crypto.randomUUID(),
@@ -197,8 +276,8 @@ function reconcileRule(rule: Rule, template: Template) {
     ),
   };
 }
-
 function App() {
+  const { t } = useI18n();
   const [library, setLibrary] = useState<Library | null>(null);
   const [view, setView] = useState("merge");
   const [step, setStep] = useState(1);
@@ -207,20 +286,24 @@ function App() {
   const [assignments, setAssignments] = useState<Record<string, Assignment>>(
     {},
   );
-  const [busy, setBusy] = useState("");
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
+  const [busy, setBusy] = useState<Message | null>(null);
+  const [error, setError] = useState<Message | null>(null);
+  const [notice, setNotice] = useState<Message | null>(null);
   const [dragging, setDragging] = useState(false);
   const [expanded, setExpanded] = useState("");
-  const [editor, setEditor] = useState<{ rule: Rule; key?: string } | null>(
-    null,
-  );
+  const [editor, setEditor] = useState<{
+    rule: Rule;
+    key?: string;
+  } | null>(null);
   const [preview, setPreview] = useState<ResultRow[]>([]);
   const [job, setJob] = useState<Job | null>(null);
   const [kind, setKind] = useState("valid");
   const [duplicatesOnly, setDuplicatesOnly] = useState(false);
   const [page, setPage] = useState(1);
-  const [results, setResults] = useState<{ rows: ResultRow[]; total: number }>({
+  const [results, setResults] = useState<{
+    rows: ResultRow[];
+    total: number;
+  }>({
     rows: [],
     total: 0,
   });
@@ -246,15 +329,14 @@ function App() {
     selections.some((s) => !!s.sheet.error) ||
     rowCount > 100000 ||
     !selections.length;
-
   useEffect(() => {
     api<Library>("/config")
       .then(setLibrary)
-      .catch((e) => setError(e.message));
+      .catch((e) => setError(messageFromError(e)));
   }, []);
   useEffect(() => {
     if (!notice) return;
-    const timer = setTimeout(() => setNotice(""), 4500);
+    const timer = setTimeout(() => setNotice(null), 4500);
     return () => clearTimeout(timer);
   }, [notice]);
   useEffect(() => {
@@ -265,10 +347,13 @@ function App() {
         const next = await api<Job>(`/jobs/${job.id}`);
         if (!stopped) {
           setJob(next);
-          if (next.status === "failed") setError(next.error || "处理失败");
+          if (next.status === "failed")
+            setError(
+              msg(next.error_code || "processing_failed", next.error_params),
+            );
         }
       } catch (e) {
-        if (!stopped) setError((e as Error).message);
+        if (!stopped) setError(messageFromError(e));
       }
     };
     const timer = setInterval(poll, 700);
@@ -281,13 +366,16 @@ function App() {
     if (job?.status !== "done") return;
     let stopped = false;
     setLoadingRows(true);
-    api<{ rows: ResultRow[]; total: number }>(
+    api<{
+      rows: ResultRow[];
+      total: number;
+    }>(
       `/jobs/${job.id}/rows?kind=${kind}&page=${page}&duplicates_only=${duplicatesOnly}`,
     )
       .then((r) => {
         if (!stopped) setResults(r);
       })
-      .catch((e) => setError(e.message))
+      .catch((e) => setError(messageFromError(e)))
       .finally(() => {
         if (!stopped) setLoadingRows(false);
       });
@@ -295,16 +383,15 @@ function App() {
       stopped = true;
     };
   }, [job?.id, job?.status, kind, page, duplicatesOnly]);
-
-  async function action(label: string, work: () => Promise<void>) {
+  async function action(label: Message, work: () => Promise<void>) {
     setBusy(label);
-    setError("");
+    setError(null);
     try {
       await work();
     } catch (e) {
-      setError((e as Error).message);
+      setError(messageFromError(e));
     } finally {
-      setBusy("");
+      setBusy(null);
     }
   }
   function initializeAssignments(next: SourceFile[]) {
@@ -333,13 +420,17 @@ function App() {
   async function upload(list: FileList | File[] | null) {
     if (!list?.length || busy || running) return;
     if (files.length + list.length > 30) {
-      setError("每批最多 30 个文件");
+      setError(msg("ui.aBatchCanContainUpTo30"));
       return;
     }
-    await action("正在读取文件…", async () => {
+    await action(msg("ui.readingFiles"), async () => {
       let id = batch;
       if (!id) {
-        id = (await api<{ id: string }>("/batches", "POST")).id;
+        id = (
+          await api<{
+            id: string;
+          }>("/batches", "POST")
+        ).id;
         setBatch(id);
       }
       const form = new FormData();
@@ -358,7 +449,7 @@ function App() {
     if (uploadRef.current) uploadRef.current.value = "";
   }
   async function removeFile(f: SourceFile) {
-    await action("移除文件…", async () => {
+    await action(msg("ui.removingFile"), async () => {
       await api(`/batches/${batch}/files/${f.id}`, "DELETE");
       setFiles((old) => old.filter((x) => x.id !== f.id));
     });
@@ -368,7 +459,7 @@ function App() {
     encoding: string,
     headerRows: Record<string, number>,
   ) {
-    await action("重新检查文件…", async () => {
+    await action(msg("ui.inspectingFileAgain"), async () => {
       const next = await api<SourceFile>(
         `/batches/${batch}/files/${f.id}/inspect`,
         "POST",
@@ -412,18 +503,16 @@ function App() {
     };
   }
   async function loadPreview() {
-    await action("正在生成预览…", async () => {
-      const data = await api<{ rows: ResultRow[] }>(
-        `/batches/${batch}/preview`,
-        "POST",
-        payload(),
-      );
+    await action(msg("ui.generatingPreview"), async () => {
+      const data = await api<{
+        rows: ResultRow[];
+      }>(`/batches/${batch}/preview`, "POST", payload());
       setPreview(data.rows);
       setStep(3);
     });
   }
   async function start() {
-    await action("启动合并…", async () => {
+    await action(msg("ui.startingMerge"), async () => {
       setKind("valid");
       setPage(1);
       setDuplicatesOnly(false);
@@ -434,7 +523,7 @@ function App() {
     });
   }
   async function saveEditor(rule: Rule, saveToLibrary: boolean) {
-    await action("保存规则…", async () => {
+    await action(msg("ui.savingRule"), async () => {
       if (saveToLibrary) {
         const lib = await api<Library>("/rules", "POST", rule);
         setLibrary(lib);
@@ -446,7 +535,9 @@ function App() {
         }));
       setEditor(null);
       setNotice(
-        saveToLibrary ? "规则已保存，下次导入时可复用" : "本次映射已确认",
+        saveToLibrary
+          ? msg("ui.ruleSavedForTheNextImport")
+          : msg("ui.mappingConfirmedForThisBatch"),
       );
     });
   }
@@ -457,18 +548,20 @@ function App() {
     setBatch("");
     setPreview([]);
     setJob(null);
-    setError("");
+    setError(null);
   }
   if (!library)
     return (
       <div className="boot">
         <Layers3 size={38} />
-        <h2>归表</h2>
-        <p>{error || "正在打开本机工作台…"}</p>
-        {error && <button onClick={() => location.reload()}>重新连接</button>}
+        <h2>{t("ui.salesSheetMerger")}</h2>
+        <LanguageSwitcher />
+        <p>{renderMessage(error) || t("ui.openingYourLocalWorkspace")}</p>
+        {error && (
+          <button onClick={() => location.reload()}>{t("ui.reconnect")}</button>
+        )}
       </div>
     );
-
   return (
     <div className="app-shell">
       <aside className="sidebar" inert={!!editor}>
@@ -483,16 +576,17 @@ function App() {
           <span className="brand-icon">
             <Layers3 size={24} />
           </span>
-          <span>
-            归表<small>SALES WORKSPACE</small>
+          <span className="brand-name">
+            {t("ui.salesSheetMerger")}
+            <small>{t("ui.brandSubtitle")}</small>
           </span>
         </a>
-        <div className="nav-label">工作空间</div>
+        <div className="nav-label">{t("ui.workspace")}</div>
         <nav>
           {[
-            { id: "merge", label: "批量合并", icon: FolderOpen },
-            { id: "rules", label: "来源规则", icon: Settings2 },
-            { id: "template", label: "标准模板", icon: Table2 },
+            { id: "merge", label: t("ui.batchMerge"), icon: FolderOpen },
+            { id: "rules", label: t("ui.sourceRules"), icon: Settings2 },
+            { id: "template", label: t("ui.standardTemplate"), icon: Table2 },
           ].map((item) => (
             <button
               className={view === item.id ? "nav-item active" : "nav-item"}
@@ -500,7 +594,7 @@ function App() {
               disabled={!!busy || running}
               onClick={() => {
                 setView(item.id);
-                setError("");
+                setError(null);
               }}
             >
               <item.icon size={18} />
@@ -513,11 +607,11 @@ function App() {
         </nav>
         <div className="sidebar-note">
           <ShieldCheck size={21} />
-          <strong>数据留在你的电脑</strong>
-          <p>文件在本机完成处理。规则会保留，临时数据在退出后清理。</p>
+          <strong>{t("ui.yourDataStaysOnYourComputer")}</strong>
+          <p>{t("ui.filesAreProcessedLocallyRulesAreSaved")}</p>
           <span className="small-tag">
             <span className="status-dot" />
-            本机运行
+            {t("ui.runningLocally")}
           </span>
         </div>
         <button
@@ -526,39 +620,47 @@ function App() {
           onClick={() => setView("help")}
         >
           <HelpCircle size={18} />
-          使用指南
+          {t("ui.userGuide")}
           <ChevronRight size={14} />
         </button>
         <div className="sidebar-version">
-          归表 v1.0 <span>为重复的整理工作减负</span>
+          {t("ui.salesSheetMergerV10")}
+          <span>{t("ui.lessTimeSpentOnRepetitiveCleanup")}</span>
         </div>
       </aside>
       <div className="workspace" inert={!!editor}>
         <header className="topbar">
           <div>
-            工作空间 <ChevronRight size={13} />{" "}
+            {t("ui.workspace")}
+            <ChevronRight size={13} />{" "}
             <span>
               {
                 {
-                  merge: "批量合并",
-                  rules: "来源规则",
-                  template: "标准模板",
-                  help: "使用指南",
+                  merge: t("ui.batchMerge"),
+                  rules: t("ui.sourceRules"),
+                  template: t("ui.standardTemplate"),
+                  help: t("ui.userGuide"),
                 }[view]
               }
             </span>
           </div>
-          <span className="local-indicator">
-            <LockKeyhole size={13} />
-            本机处理 · 无需上传云端
-          </span>
+          <div className="topbar-actions">
+            <LanguageSwitcher />
+            <span className="local-indicator">
+              <LockKeyhole size={13} />
+              {t("ui.localProcessingNoCloudUpload")}
+            </span>
+          </div>
         </header>
         <main>
           {error && (
             <div role="alert" className="alert error">
               <CircleAlert size={18} />
-              <span>{error}</span>
-              <button aria-label="关闭提示" onClick={() => setError("")}>
+              <span>{renderMessage(error)}</span>
+              <button
+                aria-label={t("ui.dismissNotification")}
+                onClick={() => setError(null)}
+              >
                 <X size={16} />
               </button>
             </div>
@@ -566,16 +668,18 @@ function App() {
           {notice && (
             <div role="status" className="toast">
               <CheckCheck size={18} />
-              {notice}
+              {renderMessage(notice)}
             </div>
           )}
           {view === "merge" && (
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">一份标准，连接每个销售来源</div>
-                  <h1>销售表批量合并</h1>
-                  <p>把不同格式的销售明细，整理成一张清晰的标准表。</p>
+                  <div className="eyebrow">
+                    {t("ui.oneStandardForEverySalesSource")}
+                  </div>
+                  <h1>{t("ui.mergeSalesSpreadsheets")}</h1>
+                  <p>{t("ui.turnSalesRecordsFromDifferentSourcesInto")}</p>
                 </div>
                 {files.length > 0 && !running && (
                   <button
@@ -584,36 +688,39 @@ function App() {
                     onClick={reset}
                   >
                     <Plus size={16} />
-                    新建批次
+                    {t("ui.newBatch")}
                   </button>
                 )}
               </div>
               <div className="steps">
-                {["导入文件", "配置规则", "预览检查", "合并导出"].map(
-                  (label, i) => (
-                    <React.Fragment key={label}>
-                      <button
-                        disabled={!!busy || running || i + 1 > step}
-                        onClick={() => setStep(i + 1)}
-                        className={`step ${step === i + 1 ? "current" : ""} ${step > i + 1 ? "complete" : ""}`}
-                      >
-                        <span>
-                          {step > i + 1 ? (
-                            <Check size={15} />
-                          ) : (
-                            String(i + 1).padStart(2, "0")
-                          )}
-                        </span>
-                        {label}
-                      </button>
-                      {i < 3 && (
-                        <div
-                          className={`step-line ${step > i + 1 ? "filled" : ""}`}
-                        />
-                      )}
-                    </React.Fragment>
-                  ),
-                )}
+                {[
+                  t("ui.importFiles"),
+                  t("ui.configureRules"),
+                  t("ui.previewCheck"),
+                  t("ui.mergeExport"),
+                ].map((label, i) => (
+                  <React.Fragment key={label}>
+                    <button
+                      disabled={!!busy || running || i + 1 > step}
+                      onClick={() => setStep(i + 1)}
+                      className={`step ${step === i + 1 ? "current" : ""} ${step > i + 1 ? "complete" : ""}`}
+                    >
+                      <span>
+                        {step > i + 1 ? (
+                          <Check size={15} />
+                        ) : (
+                          String(i + 1).padStart(2, "0")
+                        )}
+                      </span>
+                      {label}
+                    </button>
+                    {i < 3 && (
+                      <div
+                        className={`step-line ${step > i + 1 ? "filled" : ""}`}
+                      />
+                    )}
+                  </React.Fragment>
+                ))}
               </div>
               {step === 1 && (
                 <div className="import-layout">
@@ -638,23 +745,26 @@ function App() {
                           <Upload size={30} />
                         )}
                       </span>
-                      <h2>{busy || "把销售文件拖到这里"}</h2>
-                      <p>支持不同来源的 Excel 和 CSV，一次选择多个文件</p>
+                      <h2>
+                        {renderMessage(busy) || t("ui.dropYourSalesFilesHere")}
+                      </h2>
+                      <p>{t("ui.selectMultipleExcelAndCsvFilesFrom")}</p>
                       <button
                         className="btn primary"
                         disabled={!!busy}
                         onClick={() => uploadRef.current?.click()}
                       >
                         <Plus size={17} />
-                        选择文件
+                        {t("ui.chooseFiles")}
                       </button>
                       <div className="upload-limits">
-                        .xlsx / .csv <span>·</span> 最多 30 个文件{" "}
-                        <span>·</span> 合计 10 万行
+                        .xlsx / .csv <span>·</span>
+                        {t("ui.upTo30Files")} <span>·</span>
+                        {t("ui.100000RowsTotal")}
                       </div>
                       <input
                         ref={uploadRef}
-                        aria-label="上传销售文件"
+                        aria-label={t("ui.uploadSalesFiles")}
                         type="file"
                         multiple
                         accept=".xlsx,.csv"
@@ -664,18 +774,20 @@ function App() {
                     </div>
                     <div className="section-heading">
                       <h2>
-                        已导入文件{" "}
+                        {t("ui.importedFiles")}{" "}
                         <span className="count-pill">{files.length}</span>
                       </h2>
-                      {files.length > 0 && <span>选择需要合并的工作表</span>}
+                      {files.length > 0 && (
+                        <span>{t("ui.selectTheWorksheetsToMerge")}</span>
+                      )}
                     </div>
                     {!files.length ? (
                       <div className="empty-files">
                         <FileSpreadsheet size={24} />
                         <div>
-                          还没有导入文件
+                          {t("ui.noFilesImportedYet")}
                           <small>
-                            从电商平台、门店或销售系统导出的明细都可以从这里开始。
+                            {t("ui.startWithSalesRecordsExportedFromYour")}
                           </small>
                         </div>
                       </div>
@@ -695,18 +807,22 @@ function App() {
                                 <small>
                                   {(f.size / 1024).toFixed(1)} KB <span>·</span>{" "}
                                   {f.error
-                                    ? "读取失败"
-                                    : `${f.sheets.length} 个工作表`}
+                                    ? t("ui.readFailed")
+                                    : t("ui.worksheets", {
+                                        p0: f.sheets.length,
+                                      })}
                                 </small>
                               </div>
                               <span
                                 className={`badge ${f.error ? "red" : "green"}`}
                               >
-                                {f.error ? "需处理" : "已读取"}
+                                {f.error
+                                  ? t("ui.needsAttention")
+                                  : t("ui.ready")}
                               </span>
                               <button
                                 className="icon-btn"
-                                aria-label={`展开 ${f.name}`}
+                                aria-label={t("ui.expand", { p0: f.name })}
                                 onClick={() =>
                                   setExpanded(expanded === f.id ? "" : f.id)
                                 }
@@ -719,14 +835,14 @@ function App() {
                               <button
                                 className="icon-btn"
                                 disabled={!!busy}
-                                aria-label={`移除 ${f.name}`}
+                                aria-label={t("ui.remove", { p0: f.name })}
                                 onClick={() => void removeFile(f)}
                               >
                                 <X size={17} />
                               </button>
                             </div>
                             {f.error && (
-                              <p className="inline-error">{f.error}</p>
+                              <p className="inline-error">{errorMessage(f)}</p>
                             )}
                             {f.sheets.map((s) => (
                               <label className="sheet-check" key={s.name}>
@@ -750,12 +866,14 @@ function App() {
                                 <span>{s.name}</span>
                                 {s.error ? (
                                   <small className="danger-text">
-                                    {s.error}
+                                    {errorMessage(s)}
                                   </small>
                                 ) : (
                                   <small>
-                                    {fmt(s.row_count)} 行 · {s.headers.length}{" "}
-                                    列
+                                    {t("ui.sheetDimensions", {
+                                      rows: fmt(s.row_count),
+                                      columns: s.headers.length,
+                                    })}
                                   </small>
                                 )}
                               </label>
@@ -764,7 +882,7 @@ function App() {
                               <div className="file-options">
                                 {f.name.toLowerCase().endsWith(".csv") && (
                                   <label>
-                                    字符编码
+                                    {t("ui.characterEncoding")}
                                     <select
                                       disabled={!!busy}
                                       value={f.encoding}
@@ -778,7 +896,7 @@ function App() {
                                     >
                                       <option value="utf-8-sig">UTF-8</option>
                                       <option value="gb18030">
-                                        GB18030（中文旧系统）
+                                        {t("ui.gb18030LegacyChineseSystems")}
                                       </option>
                                     </select>
                                   </label>
@@ -788,9 +906,11 @@ function App() {
                                     <div className="source-preview-heading">
                                       <strong>{s.name}</strong>
                                       <label>
-                                        表头行
+                                        {t("ui.headerRow")}
                                         <input
-                                          aria-label={`${s.name} 表头行`}
+                                          aria-label={t("ui.headerRow57", {
+                                            p0: s.name,
+                                          })}
                                           type="number"
                                           min="1"
                                           max="1000"
@@ -849,24 +969,26 @@ function App() {
                     <div className="panel overview">
                       <div className="panel-title">
                         <ClipboardList size={18} />
-                        <h3>本批概览</h3>
+                        <h3>{t("ui.batchOverview")}</h3>
                       </div>
                       <div className="big-stat">
                         {fmt(rowCount)}
-                        <span>待合并明细</span>
+                        <span>{t("ui.rowsToMerge")}</span>
                       </div>
                       <div className="overview-row">
-                        <span>已导入文件</span>
+                        <span>{t("ui.importedFiles")}</span>
                         <strong>{files.length} / 30</strong>
                       </div>
                       <div className="overview-row">
-                        <span>已选工作表</span>
+                        <span>{t("ui.selectedWorksheets")}</span>
                         <strong>{selections.length}</strong>
                       </div>
                       <div className="overview-row">
-                        <span>输出格式</span>
+                        <span>{t("ui.outputFormat")}</span>
                         <strong>
-                          Excel · {library.template.columns.length} 列
+                          {t("ui.outputColumns", {
+                            count: library.template.columns.length,
+                          })}
                         </strong>
                       </div>
                       <div className="template-label">
@@ -874,33 +996,33 @@ function App() {
                         {library.template.name}
                       </div>
                       {rowCount > 100000 && (
-                        <p className="inline-error">超过 10 万行，请减少选择</p>
+                        <p className="inline-error">
+                          {t("ui.moreThan100000RowsSelectLess")}
+                        </p>
                       )}
                       <button
                         className="btn primary full"
                         disabled={blockers || !!busy}
                         onClick={() => {
                           setStep(2);
-                          setError("");
+                          setError(null);
                         }}
                       >
-                        下一步：配置规则
+                        {t("ui.nextConfigureRules")}
                         <ArrowRight size={16} />
                       </button>
                     </div>
                     <div className="tip-card">
                       <Sparkles size={19} />
-                      <h3>整理一次，下次复用</h3>
-                      <p>
-                        为不同来源保存映射规则，下次导入相同表头时会自动建议匹配。
-                      </p>
+                      <h3>{t("ui.configureOnceReuseNextTime")}</h3>
+                      <p>{t("ui.saveAMappingForEachSourceMatching")}</p>
                     </div>
                     <div className="quiet-note">
                       <LockKeyhole size={14} />
                       <span>
-                        原始文件保持不变
+                        {t("ui.yourOriginalFilesStayUnchanged")}
                         <br />
-                        合并结果将另存为新文件
+                        {t("ui.theMergedResultIsSavedAsA")}
                       </span>
                     </div>
                   </aside>
@@ -911,13 +1033,14 @@ function App() {
                   <div className="panel section-panel">
                     <div className="section-heading">
                       <div>
-                        <h2>确认每个来源的映射规则</h2>
-                        <p>
-                          按表头建议规则，确认后再处理。不同列顺序会自动按列名对应。
-                        </p>
+                        <h2>{t("ui.confirmTheMappingForEachSource")}</h2>
+                        <p>{t("ui.rulesAreSuggestedByHeaderNamesReview")}</p>
                       </div>
                       <span className="badge green">
-                        {confirmed} / {selections.length} 已确认
+                        {t("ui.confirmedCount", {
+                          confirmed,
+                          total: selections.length,
+                        })}
                       </span>
                     </div>
                     {selections.map((s) => (
@@ -928,12 +1051,15 @@ function App() {
                         <div className="rule-source">
                           <strong>{s.file.name}</strong>
                           <small>
-                            {s.sheet.name} · {fmt(s.sheet.row_count)} 行
+                            {t("ui.sheetRowCount", {
+                              sheet: s.sheet.name,
+                              rows: fmt(s.sheet.row_count),
+                            })}
                           </small>
                         </div>
                         <div className="rule-picker">
                           <select
-                            aria-label={`${s.file.name} 来源规则`}
+                            aria-label={t("ui.sourceRule", { p0: s.file.name })}
                             value={s.assignment.rule?.id || ""}
                             onChange={(e) => {
                               const rule = library.rules.find(
@@ -951,13 +1077,16 @@ function App() {
                               }));
                             }}
                           >
-                            <option value="">选择规则或新建映射</option>
+                            <option value="">
+                              {t("ui.selectARuleOrCreateAMapping")}
+                            </option>
                             {s.assignment.rule &&
                               !library.rules.some(
                                 (r) => r.id === s.assignment.rule?.id,
                               ) && (
                                 <option value={s.assignment.rule.id}>
-                                  {s.assignment.rule.name}（仅本次）
+                                  {s.assignment.rule.name}
+                                  {t("ui.thisBatchOnly")}
                                 </option>
                               )}
                             {library.rules
@@ -974,11 +1103,13 @@ function App() {
                           </select>
                           <small>
                             {s.assignment.confirmed ? (
-                              <span className="success-text">映射已确认</span>
+                              <span className="success-text">
+                                {t("ui.mappingConfirmed")}
+                              </span>
                             ) : s.assignment.rule ? (
-                              "已建议匹配，请打开检查并确认"
+                              t("ui.suggestedMatchOpenItToReviewAnd")
                             ) : (
-                              "未找到唯一匹配，请配置映射"
+                              t("ui.noUniqueMatchConfigureAMapping")
                             )}
                           </small>
                         </div>
@@ -993,7 +1124,7 @@ function App() {
                                     s.sheet.headers,
                                     library.template,
                                     s.file.name.replace(/\.[^.]+$/, "") +
-                                      "规则",
+                                      t("ui.rule"),
                                   ),
                                 library.template,
                               ),
@@ -1005,7 +1136,9 @@ function App() {
                           ) : (
                             <Settings2 size={15} />
                           )}{" "}
-                          {s.assignment.confirmed ? "查看映射" : "配置并确认"}
+                          {s.assignment.confirmed
+                            ? t("ui.viewMapping")
+                            : t("ui.configureConfirm")}
                         </button>
                       </div>
                     ))}
@@ -1013,7 +1146,7 @@ function App() {
                   <div className="wizard-footer">
                     <button className="btn subtle" onClick={() => setStep(1)}>
                       <ArrowLeft size={16} />
-                      返回导入
+                      {t("ui.backToImport")}
                     </button>
                     <button
                       className="btn primary"
@@ -1022,7 +1155,7 @@ function App() {
                       }
                       onClick={() => void loadPreview()}
                     >
-                      {busy || "预览转换结果"}
+                      {renderMessage(busy) || t("ui.previewConvertedData")}
                       <ArrowRight size={16} />
                     </button>
                   </div>
@@ -1033,24 +1166,21 @@ function App() {
                   <div className="panel section-panel">
                     <div className="section-heading">
                       <div>
-                        <h2>合并前，检查转换效果</h2>
-                        <p>
-                          显示选中数据的前 20 行。正式合并时会检查全部{" "}
-                          {fmt(rowCount)} 行。
-                        </p>
+                        <h2>{t("ui.checkTheConversionBeforeMerging")}</h2>
+                        <p>{t("ui.previewCount", { count: fmt(rowCount) })}</p>
                       </div>
-                      <span className="badge neutral">预览</span>
+                      <span className="badge neutral">{t("ui.preview")}</span>
                     </div>
                     <ResultTable rows={preview} template={library.template} />
                     <div className="preview-note">
                       <CircleAlert size={16} />
-                      问题行会单独隔离；有效行正常导出。完全重复的有效记录会保留并提示。
+                      {t("ui.problemRowsAreIsolatedValidRowsCan")}
                     </div>
                   </div>
                   <div className="wizard-footer">
                     <button className="btn subtle" onClick={() => setStep(2)}>
                       <ArrowLeft size={16} />
-                      返回调整规则
+                      {t("ui.backToRules")}
                     </button>
                     <button
                       className="btn primary"
@@ -1058,7 +1188,7 @@ function App() {
                       onClick={() => void start()}
                     >
                       <Layers3 size={17} />
-                      {busy || "开始合并"}
+                      {renderMessage(busy) || t("ui.startMerge")}
                     </button>
                   </div>
                 </>
@@ -1068,9 +1198,12 @@ function App() {
                   {running ? (
                     <div className="panel processing">
                       <LoaderCircle size={40} className="spin" />
-                      <h2>{job.phase}</h2>
+                      <h2>{t(job.phase_code)}</h2>
                       <p>
-                        已处理 {fmt(job.processed)} / {fmt(job.total)} 行
+                        {t("ui.processedCount", {
+                          processed: fmt(job.processed),
+                          total: fmt(job.total),
+                        })}
                       </p>
                       <div className="progress-track">
                         <div
@@ -1079,18 +1212,18 @@ function App() {
                           }}
                         />
                       </div>
-                      <span>请保持工具运行，完成后即可下载结果。</span>
+                      <span>{t("ui.keepTheToolRunningDownloadTheResult")}</span>
                     </div>
                   ) : job.status === "failed" ? (
                     <div className="panel processing">
                       <CircleAlert size={36} />
-                      <h2>本次处理未完成</h2>
-                      <p>{job.error}</p>
+                      <h2>{t("ui.thisMergeCouldNotBeCompleted")}</h2>
+                      <p>{errorMessage(job)}</p>
                       <button
                         className="btn secondary"
                         onClick={() => setStep(2)}
                       >
-                        返回检查规则
+                        {t("ui.backToCheckRules")}
                       </button>
                     </div>
                   ) : (
@@ -1101,10 +1234,12 @@ function App() {
                             <CheckCheck size={26} />
                           </span>
                           <div>
-                            <h2>合并完成，结果已准备好</h2>
+                            <h2>{t("ui.mergeCompleteYourResultIsReady")}</h2>
                             <p>
-                              {files.length} 个文件 · {selections.length}{" "}
-                              个工作表 · 问题行与处理记录已一并整理
+                              {t("ui.resultSources", {
+                                files: files.length,
+                                sheets: selections.length,
+                              })}
                             </p>
                           </div>
                           <a
@@ -1112,16 +1247,19 @@ function App() {
                             href={`/api/jobs/${job.id}/export`}
                           >
                             <Download size={17} />
-                            下载合并结果
+                            {t("ui.downloadMergedExcel")}
                           </a>
                         </div>
                         <div className="result-stats">
                           {[
-                            { label: "读取明细", n: job.summary.read },
-                            { label: "有效明细", n: job.summary.valid },
-                            { label: "问题行 · 已隔离", n: job.summary.issues },
+                            { label: t("ui.rowsRead"), n: job.summary.read },
+                            { label: t("ui.validRows"), n: job.summary.valid },
                             {
-                              label: "重复组内行 · 已保留",
+                              label: t("ui.problemRowsIsolated"),
+                              n: job.summary.issues,
+                            },
+                            {
+                              label: t("ui.duplicateGroupRowsRetained"),
                               n: job.summary.duplicate_rows,
                             },
                           ].map((s, i) => (
@@ -1148,7 +1286,8 @@ function App() {
                                 setPage(1);
                               }}
                             >
-                              有效明细 <span>{fmt(job.summary.valid)}</span>
+                              {t("ui.validRows")}
+                              <span>{fmt(job.summary.valid)}</span>
                             </button>
                             <button
                               className={kind === "issues" ? "selected" : ""}
@@ -1158,7 +1297,8 @@ function App() {
                                 setPage(1);
                               }}
                             >
-                              问题行 <span>{fmt(job.summary.issues)}</span>
+                              {t("ui.problemRows")}
+                              <span>{fmt(job.summary.issues)}</span>
                             </button>
                             <button
                               className={duplicatesOnly ? "selected" : ""}
@@ -1168,14 +1308,14 @@ function App() {
                                 setPage(1);
                               }}
                             >
-                              重复提示{" "}
+                              {t("ui.duplicateWarnings")}{" "}
                               <span>{fmt(job.summary.duplicate_rows)}</span>
                             </button>
                           </div>
                           {loadingRows ? (
                             <div className="loading-table">
                               <LoaderCircle size={20} className="spin" />
-                              正在读取结果…
+                              {t("ui.loadingResults")}
                             </div>
                           ) : (
                             <ResultTable
@@ -1185,12 +1325,16 @@ function App() {
                             />
                           )}
                           <div className="pagination">
-                            <span>共 {fmt(results.total)} 行 · 每页 50 行</span>
+                            <span>
+                              {t("ui.paginationSummary", {
+                                count: fmt(results.total),
+                              })}
+                            </span>
                             <div>
                               <button
                                 className="icon-btn"
                                 disabled={page <= 1 || loadingRows}
-                                aria-label="上一页"
+                                aria-label={t("ui.previousPage")}
                                 onClick={() => setPage((p) => p - 1)}
                               >
                                 <ArrowLeft size={16} />
@@ -1205,7 +1349,7 @@ function App() {
                                   page >= Math.ceil(results.total / 50) ||
                                   loadingRows
                                 }
-                                aria-label="下一页"
+                                aria-label={t("ui.nextPage")}
                                 onClick={() => setPage((p) => p + 1)}
                               >
                                 <ArrowRight size={16} />
@@ -1215,10 +1359,7 @@ function App() {
                         </div>
                         <div className="export-explanation">
                           <FileSpreadsheet size={19} />
-                          <span>
-                            导出包含 <strong>销售明细、问题行、处理汇总</strong>{" "}
-                            三个工作表；处理汇总包含精确数值合计及每行来源。
-                          </span>
+                          <span>{t("ui.exportExplanation")}</span>
                         </div>
                       </>
                     )
@@ -1231,9 +1372,11 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">把整理经验保存下来</div>
-                  <h1>来源规则</h1>
-                  <p>管理不同销售来源的字段映射与清洗方式。</p>
+                  <div className="eyebrow">
+                    {t("ui.keepYourCleanupKnowHow")}
+                  </div>
+                  <h1>{t("ui.sourceRules")}</h1>
+                  <p>{t("ui.manageFieldMappingsAndCleanupSettingsFor")}</p>
                 </div>
                 <div className="button-group">
                   <button
@@ -1241,11 +1384,11 @@ function App() {
                     onClick={() => importRef.current?.click()}
                   >
                     <Upload size={16} />
-                    导入规则库
+                    {t("ui.importRuleLibrary")}
                   </button>
                   <a className="btn secondary" href="/api/config/export">
                     <Download size={16} />
-                    导出规则库
+                    {t("ui.exportRuleLibrary")}
                   </a>
                 </div>
                 <input
@@ -1253,21 +1396,21 @@ function App() {
                   accept=".json"
                   ref={importRef}
                   hidden
-                  aria-label="导入规则库"
+                  aria-label={t("ui.importRuleLibrary")}
                   onChange={async (e) => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     if (
                       !confirm(
-                        "导入将替换当前模板和全部规则。建议先导出备份，是否继续？",
+                        t("ui.importingWillReplaceTheCurrentTemplateAnd"),
                       )
                     ) {
                       e.target.value = "";
                       return;
                     }
-                    await action("导入规则库…", async () => {
+                    await action(msg("ui.importingRuleLibrary"), async () => {
                       if (file.size > 2 * 1024 * 1024)
-                        throw new Error("规则文件超过 2 MB");
+                        throw new LocalizedError("ui.theRuleFileExceeds2Mb");
                       const data = JSON.parse(await file.text());
                       setLibrary(
                         await api<Library>("/config/import", "POST", data),
@@ -1281,7 +1424,9 @@ function App() {
                         ),
                       );
                       setStep(1);
-                      setNotice("规则库已导入，请重新确认本批映射");
+                      setNotice(
+                        msg("ui.ruleLibraryImportedConfirmTheMappingsFor"),
+                      );
                     });
                     e.target.value = "";
                   }}
@@ -1291,8 +1436,8 @@ function App() {
                 {!library.rules.length ? (
                   <div className="large-empty">
                     <Settings2 size={34} />
-                    <h2>还没有保存的来源规则</h2>
-                    <p>导入一份销售表，在“配置规则”中保存第一次映射。</p>
+                    <h2>{t("ui.noSourceRulesSavedYet")}</h2>
+                    <p>{t("ui.importASalesSpreadsheetAndSaveIts")}</p>
                     <button
                       className="btn primary"
                       onClick={() => {
@@ -1300,7 +1445,7 @@ function App() {
                         setStep(1);
                       }}
                     >
-                      去导入文件
+                      {t("ui.importFiles122")}
                       <ArrowRight size={16} />
                     </button>
                   </div>
@@ -1308,10 +1453,10 @@ function App() {
                   <table className="rules-table">
                     <thead>
                       <tr>
-                        <th>规则名称</th>
-                        <th>来源表头</th>
-                        <th>目标映射</th>
-                        <th>操作</th>
+                        <th>{t("ui.ruleName")}</th>
+                        <th>{t("ui.sourceHeaders")}</th>
+                        <th>{t("ui.targetMapping")}</th>
+                        <th>{t("ui.actions")}</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -1319,7 +1464,9 @@ function App() {
                         <tr key={r.id}>
                           <td>
                             <strong>{r.name}</strong>
-                            <small>下次导入时按表头匹配</small>
+                            <small>
+                              {t("ui.matchedByHeadersOnTheNextImport")}
+                            </small>
                           </td>
                           <td>
                             <span className="header-tags">
@@ -1331,7 +1478,11 @@ function App() {
                               )}
                             </span>
                           </td>
-                          <td>{r.mappings.length} 列</td>
+                          <td>
+                            {t("ui.mappingColumns", {
+                              count: r.mappings.length,
+                            })}
+                          </td>
                           <td>
                             <div className="button-group">
                               <button
@@ -1342,17 +1493,17 @@ function App() {
                                   })
                                 }
                               >
-                                编辑
+                                {t("ui.edit")}
                               </button>
                               <button
                                 className="icon-btn"
-                                aria-label={`复制 ${r.name}`}
+                                aria-label={t("ui.copy", { p0: r.name })}
                                 onClick={() =>
                                   setEditor({
                                     rule: {
                                       ...reconcileRule(r, library.template),
                                       id: crypto.randomUUID(),
-                                      name: r.name + "（副本）",
+                                      name: r.name + t("ui.copy130"),
                                     },
                                   })
                                 }
@@ -1362,17 +1513,22 @@ function App() {
                               <button
                                 className="icon-btn"
                                 disabled={!!busy}
-                                aria-label={`删除 ${r.name}`}
+                                aria-label={t("ui.delete", { p0: r.name })}
                                 onClick={() => {
-                                  if (confirm(`确定删除“${r.name}”？`))
-                                    void action("删除规则…", async () => {
-                                      setLibrary(
-                                        await api<Library>(
-                                          `/rules/${r.id}`,
-                                          "DELETE",
-                                        ),
-                                      );
-                                    });
+                                  if (
+                                    confirm(t("ui.delete132", { p0: r.name }))
+                                  )
+                                    void action(
+                                      msg("ui.deletingRule"),
+                                      async () => {
+                                        setLibrary(
+                                          await api<Library>(
+                                            `/rules/${r.id}`,
+                                            "DELETE",
+                                          ),
+                                        );
+                                      },
+                                    );
                                 }}
                               >
                                 <Trash2 size={16} />
@@ -1391,9 +1547,11 @@ function App() {
             <TemplateEditor
               template={library.template}
               busy={!!busy}
-              onSave={async (t) => {
-                await action("保存模板…", async () => {
-                  setLibrary(await api<Library>("/template", "PUT", t));
+              onSave={async (updatedTemplate) => {
+                await action(msg("ui.savingTemplate"), async () => {
+                  setLibrary(
+                    await api<Library>("/template", "PUT", updatedTemplate),
+                  );
                   setAssignments((old) =>
                     Object.fromEntries(
                       Object.entries(old).map(([k, a]) => [
@@ -1403,7 +1561,7 @@ function App() {
                     ),
                   );
                   setStep(1);
-                  setNotice("标准模板已保存，本批规则需重新确认");
+                  setNotice(msg("ui.templateSavedConfirmThisBatchSMappings"));
                 });
               }}
             />
@@ -1412,32 +1570,32 @@ function App() {
             <>
               <div className="page-heading">
                 <div>
-                  <div className="eyebrow">开始之前</div>
-                  <h1>让下一次整理更轻松</h1>
-                  <p>先用一小批文件确认规则，再处理完整批次。</p>
+                  <div className="eyebrow">{t("ui.beforeYouStart")}</div>
+                  <h1>{t("ui.makeTheNextImportEasier")}</h1>
+                  <p>{t("ui.confirmYourRulesWithASmallBatch")}</p>
                 </div>
               </div>
               <div className="help-grid">
                 {[
                   {
                     n: "01",
-                    title: "导入与选择",
-                    text: "支持 .xlsx 和 .csv。默认选择每个文件的第一个可用工作表，可自行多选。展开文件查看原始预览、调整表头行；中文 CSV 乱码时选择 GB18030。",
+                    title: t("ui.importSelect"),
+                    text: t("ui.supportsXlsxAndCsvTheFirstReadable"),
                   },
                   {
                     n: "02",
-                    title: "映射与清洗",
-                    text: "为每个目标列选择源列、固定值或留空。清洗顺序是：去首尾空格 → 空值填充 → 精确值替换 → 类型转换。日期格式和数字分隔符需要明确选择。",
+                    title: t("ui.mapClean"),
+                    text: t("ui.chooseASourceColumnFixedValueOr"),
                   },
                   {
                     n: "03",
-                    title: "检查与导出",
-                    text: "先检查前 20 行，再执行全量合并。必填为空或转换失败的记录进入问题行。重复按全部目标字段判断，默认保留。每个导出明细行都能在处理汇总找到来源。",
+                    title: t("ui.checkExport"),
+                    text: t("ui.previewTheFirst20RowsThenMerge"),
                   },
                   {
                     n: "04",
-                    title: "保存与复用",
-                    text: "规则保存在本机，重启工具后仍然可用。下次相同表头会建议匹配，需要人工确认。规则库可导出 JSON 备份，也可导入到另一台电脑。",
+                    title: t("ui.saveReuse"),
+                    text: t("ui.rulesAreSavedLocallyAndSurviveRestarts"),
                   },
                 ].map((item) => (
                   <div className="panel help-card" key={item.n}>
@@ -1448,26 +1606,18 @@ function App() {
                 ))}
               </div>
               <div className="panel help-limits">
-                <h3>首版处理边界</h3>
-                <p>
-                  单批最多 30 个文件、合计 10 万数据行；单文件最多 50
-                  MB。不支持旧版
-                  .xls、跨表关联、汇总统计或复杂合并单元格布局。公式仅读取已保存的计算缓存，缺少缓存时请先在
-                  Excel 重新计算并保存。
-                </p>
-                <p>
-                  订单号、商品编码建议在源文件中设为文本。工具会保留已有文本前导零和简单的补零显示格式；源文件已经丢失的位数无法恢复。金额不会自动计算、换币或调整单位。
-                </p>
-                <p>
-                  临时数据在退出或下次启动时清理。规则库保存在本机应用数据目录；导出结果请保存到你选择的位置。
-                </p>
+                <h3>{t("ui.version1Limits")}</h3>
+                <p>{t("ui.upTo30FilesAnd100000")}</p>
+                <p>{t("ui.storeOrderIdsAndSkusAsText")}</p>
+                <p>{t("ui.temporaryDataIsClearedOnExitOr")}</p>
               </div>
             </>
           )}
           <footer className="page-footer">
-            <span>归表 · 让每份销售数据各归其位</span>
+            <span>{t("ui.salesSheetMergerEverySourceOneConsistent")}</span>
             <span>
-              <ShieldCheck size={13} /> 本机处理，规则可复用
+              <ShieldCheck size={13} />
+              {t("ui.localProcessingReusableRules")}
             </span>
           </footer>
         </main>
@@ -1490,7 +1640,6 @@ function App() {
     </div>
   );
 }
-
 function ResultTable({
   rows,
   template,
@@ -1500,11 +1649,12 @@ function ResultTable({
   template: Template;
   issues?: boolean;
 }) {
+  const { t } = useI18n();
   if (!rows.length)
     return (
       <div className="empty-results">
         <CheckCheck size={25} />
-        <p>{issues ? "没有问题行" : "这里暂无记录"}</p>
+        <p>{issues ? t("ui.noProblemRows") : t("ui.noRecordsToShow")}</p>
       </div>
     );
   return (
@@ -1512,12 +1662,12 @@ function ResultTable({
       <table>
         <thead>
           <tr>
-            <th>来源 / 行号</th>
+            <th>{t("ui.sourceRow")}</th>
             {template.columns.map((c) => (
               <th key={c.id}>{c.name}</th>
             ))}
-            <th>检查结果</th>
-            {issues && <th>原始值</th>}
+            <th>{t("ui.checkResult")}</th>
+            {issues && <th>{t("ui.originalValues")}</th>}
           </tr>
         </thead>
         <tbody>
@@ -1526,7 +1676,7 @@ function ResultTable({
               <td className="provenance" title={`${r.file} / ${r.sheet}`}>
                 <strong>{r.file}</strong>
                 <small>
-                  {r.sheet} · 第 {r.row} 行
+                  {t("ui.provenance", { sheet: r.sheet, row: r.row })}
                 </small>
               </td>
               {template.columns.map((c, i) => (
@@ -1538,20 +1688,20 @@ function ResultTable({
                 {r.reasons.length ? (
                   r.reasons.map((e, i) => (
                     <span className="reason" key={i}>
-                      {e.column}：{e.reason}
+                      {e.column}: {e.code ? t(e.code, e.params) : e.reason}
                     </span>
                   ))
                 ) : r.duplicate_group ? (
                   <span
                     className="badge amber"
-                    title={`重复组 ${r.duplicate_group}`}
+                    title={t("ui.duplicateGroup", { p0: r.duplicate_group })}
                   >
-                    重复 · 已保留
+                    {t("ui.duplicateRetained")}
                   </span>
                 ) : (
                   <span className="success-text">
                     <Check size={13} />
-                    通过
+                    {t("ui.passed")}
                   </span>
                 )}
               </td>
@@ -1567,7 +1717,6 @@ function ResultTable({
     </div>
   );
 }
-
 function RuleEditor({
   rule,
   template,
@@ -1583,8 +1732,9 @@ function RuleEditor({
   onClose: () => void;
   onSave: (r: Rule, s: boolean) => Promise<void>;
   source?: Sheet;
-  error: string;
+  error: Message | null;
 }) {
+  const { t } = useI18n();
   const modalRef = useRef<HTMLDivElement>(null);
   const [draft, setDraft] = useState<Rule>(() => structuredClone(rule));
   const [saveLibrary, setSaveLibrary] = useState(true);
@@ -1645,14 +1795,15 @@ function RuleEditor({
       >
         <div className="modal-header">
           <div>
-            <div className="eyebrow">来源规则</div>
-            <h2 id="rule-editor-title">配置字段映射</h2>
-            <p>把来源列对应到标准列，展开设置可添加清洗规则。</p>
+            <div className="eyebrow">{t("ui.sourceRules")}</div>
+            <h2 id="rule-editor-title">{t("ui.configureFieldMapping")}</h2>
+            <p>{t("ui.matchSourceColumnsToTargetColumnsOpen")}</p>
           </div>
+          <LanguageSwitcher />
           <button
             className="icon-btn"
             disabled={busy}
-            aria-label="关闭规则配置"
+            aria-label={t("ui.closeMappingEditor")}
             onClick={onClose}
           >
             <X size={21} />
@@ -1662,22 +1813,22 @@ function RuleEditor({
           {error && (
             <div className="alert error" role="alert">
               <CircleAlert size={17} />
-              <span>{error}</span>
+              <span>{renderMessage(error)}</span>
             </div>
           )}
           <label className="rule-name-label">
-            规则名称
+            {t("ui.ruleName")}
             <input
               value={draft.name}
               maxLength={100}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder="例如：淘宝店铺销售明细"
+              placeholder={t("ui.eGMarketplaceSalesExport")}
             />
           </label>
           <div className="mapping-head">
-            <span>标准目标列</span>
-            <span>来源 / 填充值</span>
-            <span>清洗设置</span>
+            <span>{t("ui.standardTargetColumn")}</span>
+            <span>{t("ui.sourceFillValue")}</span>
+            <span>{t("ui.cleanupSettings")}</span>
           </div>
           {template.columns.map((col) => {
             const m = draft.mappings.find((x) => x.target_id === col.id)!;
@@ -1690,13 +1841,19 @@ function RuleEditor({
                       {col.required && <i>*</i>}
                     </strong>
                     <small>
-                      {{ text: "文本", number: "数字", date: "日期" }[col.type]}
+                      {
+                        {
+                          text: t("ui.text"),
+                          number: t("ui.number"),
+                          date: t("ui.date"),
+                        }[col.type]
+                      }
                     </small>
                   </div>
                   <div className="mapping-source">
                     <ArrowLeft size={15} />
                     <select
-                      aria-label={`${col.name} 源列`}
+                      aria-label={t("ui.sourceColumn", { p0: col.name })}
                       value={
                         m.mode === "source" ? `col:${m.source_index}` : m.mode
                       }
@@ -1716,8 +1873,10 @@ function RuleEditor({
                         );
                       }}
                     >
-                      <option value="empty">— 留空 / 使用空值填充 —</option>
-                      <option value="fixed">固定值</option>
+                      <option value="empty">
+                        {t("ui.leaveEmptyUseEmptyValueFill")}
+                      </option>
+                      <option value="fixed">{t("ui.fixedValue")}</option>
                       {draft.headers.map((h, i) => (
                         <option key={i} value={`col:${i}`}>
                           {h}
@@ -1726,12 +1885,12 @@ function RuleEditor({
                     </select>
                     {m.mode === "fixed" && (
                       <input
-                        aria-label={`${col.name} 固定值`}
+                        aria-label={t("ui.fixedValue175", { p0: col.name })}
                         value={m.fixed}
                         onChange={(e) =>
                           patch(col.id, { fixed: e.target.value })
                         }
-                        placeholder="输入固定值"
+                        placeholder={t("ui.enterAFixedValue")}
                       />
                     )}
                   </div>
@@ -1742,7 +1901,9 @@ function RuleEditor({
                     }
                   >
                     <Settings2 size={14} />
-                    {m.replacements.length || m.fill ? "已配置" : "设置"}
+                    {m.replacements.length || m.fill
+                      ? t("ui.configured")
+                      : t("ui.settings")}
                     <ChevronDown size={13} />
                   </button>
                 </div>
@@ -1756,21 +1917,21 @@ function RuleEditor({
                           patch(col.id, { trim: e.target.checked })
                         }
                       />
-                      去除首尾空格
+                      {t("ui.trimLeadingAndTrailingWhitespace")}
                     </label>
                     <label>
-                      空值填充
+                      {t("ui.fillEmptyValues")}
                       <input
                         value={m.fill}
                         onChange={(e) =>
                           patch(col.id, { fill: e.target.value })
                         }
-                        placeholder="留空表示不填充"
+                        placeholder={t("ui.leaveBlankForNoFill")}
                       />
                     </label>
                     {col.type === "date" && (
                       <label>
-                        来源日期格式
+                        {t("ui.sourceDateFormat")}
                         <select
                           value={m.date_format}
                           onChange={(e) =>
@@ -1781,8 +1942,8 @@ function RuleEditor({
                             ["%Y-%m-%d", "2026-10-27"],
                             ["%Y/%m/%d", "2026/10/27"],
                             ["%Y%m%d", "20261027"],
-                            ["%d/%m/%Y", "27/10/2026（日/月/年）"],
-                            ["%m/%d/%Y", "10/27/2026（月/日/年）"],
+                            ["%d/%m/%Y", t("ui.27102026DayMonthYear")],
+                            ["%m/%d/%Y", t("ui.10272026MonthDayYear")],
                             ["%Y-%m-%d %H:%M:%S", "2026-10-27 12:30:00"],
                           ].map(([v, label]) => (
                             <option key={v} value={v}>
@@ -1794,7 +1955,7 @@ function RuleEditor({
                     )}
                     {col.type === "number" && (
                       <label>
-                        来源数字格式
+                        {t("ui.sourceNumberFormat")}
                         <select
                           value={m.number_style}
                           onChange={(e) =>
@@ -1802,21 +1963,26 @@ function RuleEditor({
                           }
                         >
                           <option value="comma">1,234.56 / 1234.56</option>
-                          <option value="plain">1234.56（无千分位）</option>
+                          <option value="plain">
+                            {t("ui.123456NoThousandsSeparator")}
+                          </option>
                           <option value="european">1.234,56 / 1234,56</option>
                         </select>
                       </label>
                     )}
                     <div className="replacements">
                       <span>
-                        精确值替换{" "}
-                        <small>只替换整格相同的值，命中第一条即停止</small>
+                        {t("ui.replaceExactValues")}{" "}
+                        <small>{t("ui.matchesTheEntireCellStopsAtThe")}</small>
                       </span>
                       {m.replacements.map((r, i) => (
                         <div className="replacement-row" key={i}>
                           <input
-                            aria-label={`${col.name} 原值 ${i + 1}`}
-                            placeholder="原值"
+                            aria-label={t("ui.originalValue", {
+                              p0: col.name,
+                              p1: i + 1,
+                            })}
+                            placeholder={t("ui.originalValue190")}
                             value={r.before}
                             onChange={(e) =>
                               patch(col.id, {
@@ -1830,8 +1996,11 @@ function RuleEditor({
                           />
                           <ArrowRight size={14} />
                           <input
-                            aria-label={`${col.name} 新值 ${i + 1}`}
-                            placeholder="替换为"
+                            aria-label={t("ui.replacementValue", {
+                              p0: col.name,
+                              p1: i + 1,
+                            })}
+                            placeholder={t("ui.replaceWith")}
                             value={r.after}
                             onChange={(e) =>
                               patch(col.id, {
@@ -1843,7 +2012,7 @@ function RuleEditor({
                           />
                           <button
                             className="icon-btn"
-                            aria-label="移除替换项"
+                            aria-label={t("ui.removeReplacement")}
                             onClick={() =>
                               patch(col.id, {
                                 replacements: m.replacements.filter(
@@ -1868,7 +2037,7 @@ function RuleEditor({
                         }
                       >
                         <Plus size={14} />
-                        添加替换
+                        {t("ui.addReplacement")}
                       </button>
                     </div>
                   </div>
@@ -1878,7 +2047,7 @@ function RuleEditor({
           })}
           {source && (
             <details className="editor-source">
-              <summary>查看来源示例（前 5 行）</summary>
+              <summary>{t("ui.viewSourceSampleFirst5Rows")}</summary>
               <div className="table-scroll">
                 <table>
                   <thead>
@@ -1903,7 +2072,7 @@ function RuleEditor({
           )}
           <div className="mapping-notice">
             <CircleAlert size={15} />
-            标记 * 的目标列为必填。留空且未设置填充值时，对应数据行会被隔离。
+            {t("ui.targetsMarkedAreRequiredRowsWithAn")}
           </div>
         </div>
         <div className="modal-footer">
@@ -1913,11 +2082,11 @@ function RuleEditor({
               checked={saveLibrary}
               onChange={(e) => setSaveLibrary(e.target.checked)}
             />
-            保存到来源规则库，下次复用
+            {t("ui.saveToTheRuleLibraryForNext")}
           </label>
           <div className="button-group">
             <button className="btn secondary" disabled={busy} onClick={onClose}>
-              取消
+              {t("ui.cancel")}
             </button>
             <button
               className="btn primary"
@@ -1927,7 +2096,7 @@ function RuleEditor({
               }
             >
               <Check size={16} />
-              {busy ? "正在保存…" : "确认映射"}
+              {busy ? t("ui.saving") : t("ui.confirmMapping")}
             </button>
           </div>
         </div>
@@ -1935,7 +2104,6 @@ function RuleEditor({
     </div>
   );
 }
-
 function TemplateEditor({
   template,
   busy,
@@ -1945,6 +2113,7 @@ function TemplateEditor({
   busy: boolean;
   onSave: (t: Template) => Promise<void>;
 }) {
+  const { t } = useI18n();
   const [draft, setDraft] = useState(() => structuredClone(template));
   const dirty = JSON.stringify(draft) !== JSON.stringify(template);
   const valid =
@@ -1967,9 +2136,11 @@ function TemplateEditor({
     <>
       <div className="page-heading">
         <div>
-          <div className="eyebrow">先定义好表格的共同语言</div>
-          <h1>标准模板</h1>
-          <p>所有来源都会按这里的列顺序和字段类型导出。</p>
+          <div className="eyebrow">
+            {t("ui.defineACommonStructureForYourData")}
+          </div>
+          <h1>{t("ui.standardTemplate")}</h1>
+          <p>{t("ui.everySourceIsExportedUsingTheseColumns")}</p>
         </div>
         <button
           className="btn primary"
@@ -1986,12 +2157,12 @@ function TemplateEditor({
           }
         >
           <Save size={16} />
-          保存模板
+          {t("ui.saveTemplate")}
         </button>
       </div>
       <div className="panel section-panel template-panel">
         <label className="template-name-label">
-          模板名称
+          {t("ui.templateName")}
           <input
             value={draft.name}
             maxLength={80}
@@ -2001,11 +2172,11 @@ function TemplateEditor({
         <table>
           <thead>
             <tr>
-              <th className="col-order">顺序</th>
-              <th>目标列名称</th>
-              <th>数据类型</th>
-              <th>必填</th>
-              <th>调整</th>
+              <th className="col-order">{t("ui.order")}</th>
+              <th>{t("ui.targetColumnName")}</th>
+              <th>{t("ui.dataType")}</th>
+              <th>{t("ui.required")}</th>
+              <th>{t("ui.reorder")}</th>
             </tr>
           </thead>
           <tbody>
@@ -2016,7 +2187,7 @@ function TemplateEditor({
                 </td>
                 <td>
                   <input
-                    aria-label={`第 ${i + 1} 列名称`}
+                    aria-label={t("ui.columnName", { p0: i + 1 })}
                     value={c.name}
                     maxLength={80}
                     onChange={(e) => patch(c.id, { name: e.target.value })}
@@ -2024,28 +2195,30 @@ function TemplateEditor({
                 </td>
                 <td>
                   <select
-                    aria-label={`${c.name} 数据类型`}
+                    aria-label={t("ui.dataType211", { p0: c.name })}
                     value={c.type}
                     onChange={(e) =>
                       patch(c.id, { type: e.target.value as Column["type"] })
                     }
                   >
-                    <option value="text">文本（保留前导零）</option>
-                    <option value="number">数字</option>
-                    <option value="date">日期</option>
+                    <option value="text">
+                      {t("ui.textPreserveLeadingZeros")}
+                    </option>
+                    <option value="number">{t("ui.number")}</option>
+                    <option value="date">{t("ui.date")}</option>
                   </select>
                 </td>
                 <td>
                   <label className="checkbox-label">
                     <input
-                      aria-label={`${c.name} 必填`}
+                      aria-label={t("ui.required213", { p0: c.name })}
                       type="checkbox"
                       checked={c.required}
                       onChange={(e) =>
                         patch(c.id, { required: e.target.checked })
                       }
                     />
-                    必填
+                    {t("ui.required")}
                   </label>
                 </td>
                 <td>
@@ -2053,7 +2226,7 @@ function TemplateEditor({
                     <button
                       className="icon-btn"
                       disabled={i === 0}
-                      aria-label={`上移 ${c.name}`}
+                      aria-label={t("ui.moveUp", { p0: c.name })}
                       onClick={() => move(i, -1)}
                     >
                       <ArrowUp size={15} />
@@ -2061,7 +2234,7 @@ function TemplateEditor({
                     <button
                       className="icon-btn"
                       disabled={i === draft.columns.length - 1}
-                      aria-label={`下移 ${c.name}`}
+                      aria-label={t("ui.moveDown", { p0: c.name })}
                       onClick={() => move(i, 1)}
                     >
                       <ArrowDown size={15} />
@@ -2069,9 +2242,15 @@ function TemplateEditor({
                     <button
                       className="icon-btn"
                       disabled={draft.columns.length === 1}
-                      aria-label={`删除列 ${c.name}`}
+                      aria-label={t("ui.deleteColumn", { p0: c.name })}
                       onClick={() => {
-                        if (confirm(`从模板中删除“${c.name}”？保存后生效。`))
+                        if (
+                          confirm(
+                            t("ui.removeFromTheTemplateThisTakesEffect", {
+                              p0: c.name,
+                            }),
+                          )
+                        )
                           setDraft({
                             ...draft,
                             columns: draft.columns.filter((x) => x.id !== c.id),
@@ -2096,7 +2275,9 @@ function TemplateEditor({
                 ...draft.columns,
                 {
                   id: crypto.randomUUID(),
-                  name: "新字段" + (draft.columns.length + 1),
+                  name: t("ui.newFieldName", {
+                    count: draft.columns.length + 1,
+                  }),
                   type: "text",
                   required: false,
                 },
@@ -2105,20 +2286,23 @@ function TemplateEditor({
           }
         >
           <Plus size={16} />
-          添加目标列
+          {t("ui.addTargetColumn")}
         </button>
         {!valid && (
-          <p className="inline-error">模板和列名称不能为空，列名称不能重复。</p>
+          <p className="inline-error">
+            {t("ui.templateAndColumnNamesCannotBeEmpty")}
+          </p>
         )}
       </div>
       <div className="template-footnote">
         <CircleAlert size={16} />
-        <p>
-          保存模板后，当前批次需要重新确认规则。金额不会自动通过数量与单价计算；订单号和商品编码建议使用文本类型。
-        </p>
+        <p>{t("ui.afterSavingTheTemplateConfirmThisBatch")}</p>
       </div>
     </>
   );
 }
-
-createRoot(document.getElementById("root")!).render(<App />);
+createRoot(document.getElementById("root")!).render(
+  <I18nProvider>
+    <App />
+  </I18nProvider>,
+);

@@ -1,65 +1,77 @@
-# 归表 · 销售表批量合并工具
+# Sales Sheet Merger
 
-把不同来源的销售明细统一成标准格式，并保存映射和清洗规则供下次使用。中文浏览器界面，本机处理，无账号、无云端上传。
+[English](README.md) · [简体中文](README.zh-CN.md)
 
-## 启动
+Merge sales records from different Excel and CSV sources into a consistent template. Save field mappings and cleanup rules for the next import. Files are processed on your computer; no accounts or cloud uploads are required.
 
-本项目已在这台 Mac 上完成安装与构建。双击 **start.command**，或在终端运行：
+## Start
+
+On this Mac, dependencies and the production frontend are already installed. Double-click **start.command**, or run:
 
 ```sh
 cd /Users/a1234/Projects/sales-sheet-merger
 ./start.command
 ```
 
-浏览器会打开 <http://127.0.0.1:8765>。保持终端窗口打开，按 Control-C 正常退出并清理临时数据。再次启动会保留模板与规则。重复启动会打开已运行的实例。
+Open <http://127.0.0.1:8765>. Keep the launch terminal open. **Press Control-C in that terminal to stop the service and clear temporary data. Closing the browser does not stop the service.** Saved templates and rules survive restarts. Starting the launcher again opens the existing instance.
 
-新电脑需要 Python 3.11+、Node.js 20.19+ 和 npm，先运行 `./setup.sh`。依赖分别通过 `requirements.lock`、`frontend/package-lock.json` 固定。首次启动缺少安装或构建结果时会自动执行安装脚本。安装依赖需要联网，日常处理不需要联网。
+On a new computer, install Python 3.11+ and Node.js 20.19+ with npm, then run `./setup.sh`. The launcher runs setup automatically if the virtual environment or frontend build is missing. Dependencies are locked in `requirements.lock` and `frontend/package-lock.json`. Installation needs internet access; normal processing does not. Frontend tests use Node.js 22.18+ for native TypeScript support.
 
-## 使用
+## Language
 
-1. **导入文件**：拖入或多选 `.xlsx`、`.csv`。默认选择每个文件的第一个可用工作表，也可多选。展开文件可查看源数据、调整表头行，CSV 支持 UTF-8 / GB18030。
-2. **配置规则**：相同表头会建议匹配已保存规则，忽略列顺序。打开检查，为各目标列选择源列、固定值或留空，确认后才继续。可选择保存到规则库。
-3. **预览检查**：查看前 20 条转换结果；返回修改规则后重新预览。
-4. **合并导出**：处理全部数据。有效行正常导出，问题行保留原值和原因。完全重复的有效记录默认保留。
+The interface starts in **English**, regardless of the browser or operating-system language. Use **English / 简体中文** in the top bar to switch; the browser remembers your choice. The mapping dialog also includes the selector, so you can change language without losing unsaved mappings. If local storage is blocked, switching still works for the current session.
 
-左侧“标准模板”支持增删列、调整名称、顺序、类型与必填项。内置八列：日期、订单号、商品编码、商品名称、数量、单价、销售额、渠道；默认日期、销售额必填。模板变化后，当前批次必须重新确认映射。
+System-generated worksheet names, issue descriptions, and summary labels use the language selected **when the merge starts**. Changing the interface while processing or before downloading does not change that job's export language. To export in another language, start a new merge in that language.
 
-“来源规则”支持编辑、复制、删除及 JSON 规则库备份。导入规则库会替换当前模板与全部规则，界面会要求确认。建议先导出备份。
+New default templates have English field names. Existing template names, column names, rules, source headers, filenames, and sales values are customer content: they are never automatically translated or overwritten when switching languages.
 
-## 转换与导出约定
+## Workflow
 
-- 清洗顺序：去除首尾空格 → 空值填充 → 精确值替换（第一条匹配）→ 类型转换。替换针对整个单元格，不支持公式或脚本。
-- 日期字符串按规则明确指定的格式转换；Excel 原生日期直接读取。不猜测月/日顺序。数字分隔符可选 `1,234.56`、`1234.56`、`1.234,56`。
-- 金额使用 Decimal 处理，不自动计算、换币或改单位。每个数字最多 15 位有效数字、小数最多 12 位、绝对值不超过 10¹⁵；超限隔离，避免 Excel 静默损失精度。精确合计以文本写入“处理汇总”。
-- 订单号、商品编码按文本输出。已有文本前导零、简单 `000000` 数字补零格式会保留；源数据已丢失的位数不能恢复。
-- 全空行跳过并计数；必填缺失或转换失败进入问题行。损坏文件必须明确移除或修复后才能合并。有效明细行数 + 问题行数 = 读取数据行数，空行单独统计。
-- 重复判断基于所有目标列的标准化结果，数字 `1.0` 与 `1.00` 等价。完全重复默认保留；订单号相同但其他列不同的记录不自动判为重复。
-- 公式仅读取已有计算缓存，不执行或重算；映射列缺少公式缓存时进入问题行。文本以文本类型导出，不会变成公式。超过 Excel 文本长度或包含非法控制字符的目标值被隔离。
-- 输出工作表：**销售明细**（严格按模板列）、**问题行**（来源、原因、原始值与转换后值）、**处理汇总**（各来源计数、精确数值合计、逐行来源与重复组）。超长原始 JSON 按顺序拆为多列，避免截断。Excel 导出文件不覆盖原文件。
+1. **Import files:** drag or select `.xlsx` and `.csv` files. The first readable worksheet in each file is selected by default; select more as needed. Expand a file to preview it, adjust the header row, or change CSV encoding between UTF-8 and GB18030.
+2. **Configure rules:** matching headers suggest saved rules, ignoring column order. Review each mapping and choose a source column, fixed value, or empty value for every target. Optionally save it to the source-rule library.
+3. **Preview & check:** inspect the first 20 selected rows. Return to the rules to correct a conversion before merging.
+4. **Merge & export:** process all selected data, review valid/problem/duplicate rows, and download an Excel workbook.
 
-## 数据位置与限制
+The **Standard template** page edits column names, order, types, and required status. The default fields are Date, Order ID, SKU, Product, Quantity, Unit Price, Sales Amount, and Channel; Date and Sales Amount are required. Template changes require reconfirming this batch's mappings.
 
-模板与规则保存在 `~/Library/Application Support/SalesSheetMerger/library.json`。临时批次、分页数据库和导出结果保存在同目录的 `temporary/`，正常退出或下次启动时清理。下载的结果由用户自行保存；源文件不会被修改。单实例文件锁防止同时清理另一个实例的数据。
+**Source rules** supports editing, copying, deletion, and JSON library backups. Import replaces the current template and saved rules after confirmation. Export a backup first.
 
-支持每批最多 **30 文件、合计 100,000 数据行**，每文件最多 **50 MB**，每表最多 1,000 列、200,000 物理行，Excel 解压后总量不超过 256 MB。首版单批任务串行运行，不提供账号、云同步、旧 `.xls`、跨表关联、汇总统计或复杂合并单元格布局。
+## Conversion and export behavior
 
-服务只绑定 `127.0.0.1`，校验本机 Host 与请求 Origin。前端不引用外部字体、脚本或统计服务。销售文件、规则库及导出数据均已加入 Git 忽略范围。
+- Cleanup order: trim whitespace → fill empty values → replace exact whole-cell values (first match) → convert types. No scripts or formula editor.
+- Dates use the format explicitly selected in the rule; native Excel dates are read directly. Day/month order is not guessed. Number styles support `1,234.56`, `1234.56`, and `1.234,56`. Language switching does not change these parsing settings.
+- Amounts use Decimal arithmetic. No automatic quantity-times-price calculation, currency conversion, or unit rescaling. Numeric values support up to 15 significant digits, 12 decimal places, and absolute value 10¹⁵; excess precision is isolated instead of silently rounded. Exact totals are written as text in Processing Summary.
+- Order IDs and SKUs remain text. Existing text leading zeros and simple `000000` display formats are preserved; digits already lost in a source file cannot be reconstructed.
+- Entirely blank rows are skipped and counted separately. Required-value and conversion errors are isolated with the source values and reasons. Unreadable files must be removed or fixed before proceeding. Valid rows + problem rows = data rows read.
+- Exact duplicate detection compares all converted target fields; numeric `1.0` and `1.00` are equivalent. Duplicate rows are retained and grouped. Matching order IDs alone do not imply duplicates.
+- Formulas use saved calculation caches only; no formulas are executed or recalculated. Missing caches in mapped cells become issues. Exported text cannot become an Excel formula. Excessive text length and unsupported control characters are isolated.
+- Export sheets: **Sales Details** (exact template columns), **Problem Rows** (source, reason, original JSON, and converted values), **Processing Summary** (source counts, exact totals, row provenance, and duplicate groups). Chinese jobs use translated sheet names. Long original JSON is split across consecutive columns without truncation. Source files are never overwritten.
 
-## 开发与验证
+## Data and limits
+
+Settings remain at `~/Library/Application Support/SalesSheetMerger/library.json`. Temporary batches, SQLite results, and generated exports use its `temporary/` subdirectory and are cleared on normal exit or the next startup. Downloaded files are kept where you save them. A file lock prevents another instance from clearing active data.
+
+Limits: **30 files and 100,000 selected data rows per batch**, 50 MB per file, 1,000 source columns, 200,000 physical rows per sheet, and 256 MB uncompressed Excel content. One merge runs at a time. Legacy `.xls`, joins, aggregation, accounts, cloud sync, and complex merged-cell layouts are outside version 1.
+
+The service binds only to `127.0.0.1` and checks local Host and Origin headers. There are no remote fonts, scripts, or analytics. Sales files, personal rules, temporary results, and downloads are excluded from Git.
+
+## Development and verification
 
 ```sh
-# 后端
+# Backend
 .venv/bin/python -m uvicorn backend.app:app --host 127.0.0.1 --port 8765 --reload
-# 前端开发（另一个终端）
+# Frontend (another terminal)
 npm --prefix frontend run dev
-# 构建与格式检查
+# Build, formatting, frontend language tests
 npm --prefix frontend run build
 npm --prefix frontend run format:check
-# 测试
-.venv/bin/python -m pytest -m 'not scale' -q
-.venv/bin/python -m pytest -m scale -q -s
+npm --prefix frontend test
+# Backend tests, including the full 30-file / 100,000-row test
+.venv/bin/python -m pytest -q -s
 ```
 
-开发前端通过 Vite 将 `/api` 转发到本机后端。生产构建由 FastAPI 同源提供。交互接口文档位于运行中的 `/docs`。`SALES_MERGER_DATA_DIR` 可指定独立数据目录，便于隔离开发和测试。
+Vite proxies `/api` to the local backend in development. FastAPI serves the production build on the same origin. Interactive API documentation is available at `/docs`. `SALES_MERGER_DATA_DIR` selects an isolated application-data directory for development/testing.
 
-自动化测试涵盖多来源、多工作表、规则重启复用、表头重排、编码修复、原值追溯、前导零、异常隔离、重复保留、安全文本导出及行数限制。规模验收实际导入 30 个文件、合计 100,000 行，导出后重新读取核对全部行数与金额合计。
+English and Simplified Chinese catalogs live in `shared/locales/` and are used by both frontend and backend. Keep message keys and interpolation placeholders identical in both files. UI state stores message codes/parameters, not pretranslated notices. API requests send `Accept-Language: en` or `zh-CN`; missing/unsupported languages fall back to English. Error responses retain `detail` and add `code`/`params`; file/job errors add `error_code`/`error_params`, row reasons add `code`/`params`, and jobs expose `phase_code` and their fixed export `locale`. User-data schemas and library version 1 are unchanged.
+
+See [VALIDATION.md](VALIDATION.md) for coverage and practical limitations.

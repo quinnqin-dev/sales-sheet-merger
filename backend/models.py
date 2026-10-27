@@ -1,4 +1,5 @@
 from typing import Literal
+from .i18n import DomainError
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -10,7 +11,7 @@ class Column(BaseModel):
 
 
 class Template(BaseModel):
-    name: str = Field(default='标准销售明细', min_length=1, max_length=80)
+    name: str = Field(default='Standard Sales Details', min_length=1, max_length=80)
     columns: list[Column] = Field(min_length=1, max_length=100)
 
     @model_validator(mode='after')
@@ -18,7 +19,7 @@ class Template(BaseModel):
         for attr in ('id', 'name'):
             values = [getattr(c, attr).strip() for c in self.columns]
             if not all(values) or len(values) != len(set(values)):
-                raise ValueError('目标列名称和标识必须唯一且非空')
+                raise DomainError('invalid_columns')
         return self
 
 
@@ -49,7 +50,7 @@ class Rule(BaseModel):
     def unique_targets(self):
         ids = [m.target_id for m in self.mappings]
         if len(ids) != len(set(ids)):
-            raise ValueError('同一目标列只能配置一次')
+            raise DomainError('duplicate_mapping')
         return self
 
 
@@ -61,7 +62,7 @@ class Library(BaseModel):
     @model_validator(mode='after')
     def unique_rules(self):
         if len({r.id for r in self.rules}) != len(self.rules):
-            raise ValueError('规则标识不能重复')
+            raise DomainError('duplicate_rules')
         return self
 
 
@@ -83,12 +84,12 @@ class RunRequest(BaseModel):
 
 
 DEFAULT_TEMPLATE = Template(columns=[
-    Column(id='date', name='日期', type='date', required=True),
-    Column(id='order_id', name='订单号'),
-    Column(id='sku', name='商品编码'),
-    Column(id='product', name='商品名称'),
-    Column(id='quantity', name='数量', type='number'),
-    Column(id='price', name='单价', type='number'),
-    Column(id='amount', name='销售额', type='number', required=True),
-    Column(id='channel', name='渠道'),
+    Column(id='date', name='Date', type='date', required=True),
+    Column(id='order_id', name='Order ID'),
+    Column(id='sku', name='SKU'),
+    Column(id='product', name='Product'),
+    Column(id='quantity', name='Quantity', type='number'),
+    Column(id='price', name='Unit Price', type='number'),
+    Column(id='amount', name='Sales Amount', type='number', required=True),
+    Column(id='channel', name='Channel'),
 ])

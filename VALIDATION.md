@@ -1,33 +1,28 @@
-# 首版验收记录
+# Validation record
 
-环境：macOS、Python 3.13、Node.js 26。测试使用合成销售数据，不包含真实销售文件。
+Environment: macOS, Python 3.13, Node.js 26. All automated and browser checks use synthetic sales data.
 
-## 自动化
+## Automated checks
 
 ```sh
 .venv/bin/python -m pytest -q -s
 npm --prefix frontend run build
 npm --prefix frontend run format:check
+npm --prefix frontend test
 ```
 
-- 三种来源的不同列名、日期格式、负金额与空行，验证预览和正式合并一致。
-- 多工作表、表头行调整、表头重排、UTF-8 与 GB18030。
-- 原始值、文件名、工作表和原始行号追溯，问题行不混入有效明细。
-- 前导零、原生日期和数字类型、文本公式安全写入、缺少计算缓存的公式隔离。
-- 重复记录全部保留并分组；精确金额合计；数值超精度拒绝。
-- 规则库导入导出、重启持久化、临时文件清理、任务固定规则快照。
-- 损坏文件阻止继续、重复表头、文件数量限制、数据总量超限、本机访问来源校验。
-- 超长问题原值在导出后可拼接还原，无静默截断。
-- 实际导入 30 个文件、合计 100,000 行，核对末页、全部导出行数和金额合计。
+Coverage includes multiple sales sources and worksheets; header-row corrections and column reordering; UTF-8/GB18030; leading zeros, typed dates/numbers, decimal totals, safe literal text export, missing formula caches, invalid values, source provenance, duplicate retention, long original values, batch/file limits, restart persistence, temporary cleanup, and job rule snapshots.
 
-首次规模验收包含导入、处理、导出和导出后读取核对，总用时约 **16.8 秒**。耗时取决于文件结构与机器配置，不是性能保证。
+Internationalization checks cover default English, unsupported-language fallback, language negotiation, concurrent request isolation, localized API/validation/file errors, localized row reasons, both Excel languages, immutable export-language snapshots, preservation of customer field names and values, legacy Chinese library reuse after restart, catalog-key/placeholder parity, saved browser language, blocked browser storage, and retranslation of stored notices/errors.
 
-## 浏览器与原生文件选择
+The scale test imports 30 actual files with 100,000 total rows, checks the final results page, and re-reads every exported sales row to verify counts and amounts. The initial implementation completed the whole test in about 17 seconds on this Mac; this is a measurement, not a performance guarantee.
 
-通过 Chrome 实际执行了 CSV 文件选择、导入、规则配置、确认、预览、合并和结果查看。合成示例共 3 行：有效 2 行、问题 1 行、重复组内 2 行；确认订单号 `000123` 和商品编码 `0011` 在界面保留。
+## Browser checks
 
-Chrome 扩展的自动文件上传缺少本地文件 URL 权限，改用 macOS 原生文件选择窗口成功完成导入，未修改扩展权限。
+The original version was exercised through the macOS file picker, CSV import, mapping confirmation, preview, merge, valid results, and duplicate filtering. Three synthetic rows produced two valid duplicate-group rows and one isolated problem row; order ID `000123` and SKU `0011` were preserved.
 
-## 边界
+The internationalized build is checked in Chrome for English layout, live switching to Simplified Chinese, restoring the selected language after reload, preserving unsaved template fields when switching, and translated navigation/help. Mapping/result messages and export language snapshots are covered by automated tests. Browser-extension file uploads may require local-file URL access; native macOS file selection works without changing extension permissions.
 
-自动化测试重新读取了导出工作簿的值、类型与工作表结构。未在 Microsoft Excel 原生应用中验证显示和公式重算；产品本身不执行或重算公式。无真实销售文件样本，复杂来源需用真实数据再验收。
+## Practical limits
+
+Exported workbook values, types, sheets, counts, and totals are checked by reopening the output programmatically. Microsoft Excel native rendering/recalculation has not been tested; the product does not calculate formulas. No real sales sample files have been provided, so unusual source formats still need acceptance with actual data.

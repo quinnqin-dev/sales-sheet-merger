@@ -99,7 +99,7 @@ def test_three_sources_preview_export_and_reuse(client):
     # Formula cache errors must be caught. Then use a fixed text value beginning '=' to check safe export.
     first_request = request_for(files, rules)
     pre = client.post(f'/api/batches/{batch}/preview', json=first_request).json()
-    assert '公式' in pre['rows'][0]['reasons'][0]['reason']
+    assert pre['rows'][0]['reasons'][0]['code'] == 'formula_cache'
     mapping = next(m for m in rules[0].mappings if m.target_id == 'product')
     mapping.mode, mapping.fixed = 'fixed', '=literal'
     body = request_for(files, rules)
@@ -118,12 +118,12 @@ def test_three_sources_preview_export_and_reuse(client):
     assert issue['row'] == 4 and issue['raw'][0] == 'bad-date'
     result = client.get(f'/api/jobs/{job["id"]}/export')
     book = load_workbook(io.BytesIO(result.content), data_only=False)
-    assert book.sheetnames == ['销售明细', '问题行', '处理汇总']
-    details = book['销售明细']
+    assert book.sheetnames == ['Sales Details', 'Problem Rows', 'Processing Summary']
+    details = book['Sales Details']
     assert details['B2'].value == '000123' and details['B2'].data_type == 's'
     assert details['D2'].value == '=literal' and details['D2'].data_type == 's'
     assert details['A2'].is_date and details['G2'].data_type == 'n'
-    assert details.max_row == 5 and book['问题行'].max_row == 2
+    assert details.max_row == 5 and book['Problem Rows'].max_row == 2
     book.close()
     saved = client.post('/api/rules', json=rules[0].model_dump())
     assert saved.status_code == 200
@@ -212,7 +212,7 @@ def test_multi_sheet_and_zero_padding(client):
 
 def test_duplicate_headers_and_limits(client):
     batch, files = upload(client,[('duplicate.csv',csv_bytes(['金额','金额'],[[1,2]]))])
-    assert '重复' in files[0]['sheets'][0]['error']
+    assert files[0]['sheets'][0]['error_code'] == 'invalid_headers'
     assert files[0]['error']
     response = client.post(f'/api/batches/{batch}/files', files=[('files',(f'{i}.csv',b'a\n1')) for i in range(30)])
     assert response.status_code == 400
@@ -230,7 +230,7 @@ def test_total_limit_without_partial_export(client):
                                   ('b.csv',csv_bytes(headers, (['2026-10-27',1] for _ in range(40001))))])
     rule = make_rule(headers,{'date':'日期','amount':'金额'})
     response = client.post(f'/api/batches/{batch}/jobs',json=request_for(files,[rule,rule]))
-    assert response.status_code == 400 and '10 万行' in response.json()['detail']
+    assert response.status_code == 400 and response.json()['code'] == 'total_row_limit'
 
 
 def test_long_problem_raw_values_are_preserved_in_excel(client):
@@ -241,7 +241,7 @@ def test_long_problem_raw_values_are_preserved_in_excel(client):
     job = run(client,batch,request_for(files,[rule]))
     assert job['summary']['issues'] == 1 and job['summary']['valid'] == 0
     book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content),data_only=True)
-    row = list(book['问题行'].values)[1]
+    row = list(book['Problem Rows'].values)[1]
     restored = json.loads(row[4] + row[5])
     assert restored == ['bad','1',long_text]
     assert '32767' in row[3]
@@ -295,7 +295,7 @@ def test_thirty_files_one_hundred_thousand_rows(client):
     book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content),read_only=True,data_only=True)
     count = 0
     total = Decimal(0)
-    for row in book['销售明细'].iter_rows(min_row=2,values_only=True):
+    for row in book['Sales Details'].iter_rows(min_row=2,values_only=True):
         count += 1
         total += Decimal(str(row[6]))
     assert count == 100000 and total == Decimal('110000.0')

@@ -29,14 +29,14 @@ def main():
     try:
         for _ in range(100):
             if process.poll() is not None:
-                raise SystemExit('启动失败，请检查 8765 端口是否被占用，或是否已有其他实例运行。')
+                raise SystemExit('Startup failed. Check whether port 8765 is in use or another instance is running.')
             if is_running():
-                print('归表已启动：' + URL + '\n保持此窗口打开；按 Control-C 退出并清理临时数据。')
+                print('Sales Sheet Merger is running: ' + URL + '\nKeep this window open. Press Control-C to exit and clear temporary data.')
                 webbrowser.open(URL)
                 break
             time.sleep(0.1)
         else:
-            raise SystemExit('启动超时，请检查终端中的错误信息。')
+            raise SystemExit('Startup timed out. Check the errors in this terminal.')
         process.wait()
     except KeyboardInterrupt:
         pass
