@@ -4,7 +4,7 @@
 
 Merge spreadsheets with different column names into one consistent Excel file. Define your output columns once, save a mapping for each source, and reuse it next time.
 
-Built for sales records, and also useful for student grades and other tables that need the same columns. Files are processed on your computer, with no account or cloud upload required.
+Built for sales records, and also useful for student grades and other tables that need the same columns. Files are processed on your computer, with no account or cloud upload required. No API key or separate database service is needed.
 
 - **Import:** `.xlsx`, `.xls`, and `.csv`, including multiple worksheets.
 - **Customize:** output column names, order, data types, and required fields.
@@ -117,7 +117,7 @@ Choose **English / 简体中文** in the top bar. The browser remembers your cho
 
 ## Data and conversion details
 
-Files are processed locally. Source files are never overwritten. Settings are saved at `~/Library/Application Support/SalesSheetMerger/library.json`; imported batches, intermediate results, and generated exports are temporary. Downloaded files remain wherever you save them. Switching between pages in the app preserves the current batch; download any needed results before refreshing the browser or stopping the service.
+Files are processed locally. Source files are never overwritten. Settings are saved at `~/Library/Application Support/SalesSheetMerger/library.json`; imported batches, intermediate results, and generated exports are temporary. Processing results use local temporary SQLite files, which are cleared when the service stops or next starts; these files are not included in the repository. Downloaded files remain wherever you save them. Switching between pages in the app preserves the current batch; download any needed results before refreshing the browser or stopping the service.
 
 <details>
 <summary>Conversion behavior and additional limits</summary>
