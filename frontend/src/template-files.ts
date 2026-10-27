@@ -1,7 +1,10 @@
 import type { Template } from "./template-state";
 
+export const TEMPLATE_FORMAT = "sheet-merger.output-template";
+export const LEGACY_TEMPLATE_FORMAT = "sales-sheet-merger.output-template";
+
 export type TemplateDocument = {
-  format: "sales-sheet-merger.output-template";
+  format: typeof TEMPLATE_FORMAT;
   version: 1;
   id: string;
   template: Template;
@@ -23,7 +26,7 @@ export function templateDocument(
   id: string = crypto.randomUUID(),
 ): TemplateDocument {
   return {
-    format: "sales-sheet-merger.output-template",
+    format: TEMPLATE_FORMAT,
     version: 1,
     id,
     template,
@@ -41,7 +44,7 @@ export function chooseTemplateFile(
   ).showSaveFilePicker;
   if (!picker) throw new TemplateFileError("templates.browserUnsupported");
   return picker.call(window, {
-    id: "sales-output-template",
+    id: "sheet-output-template",
     suggestedName:
       fileName ||
       `${template.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")}.sheet-template.json`,

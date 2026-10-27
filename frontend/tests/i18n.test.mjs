@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import ts from 'typescript';
-import { readLocale, setCurrentLocale, getLocale, translate, renderMessage, msg, errorMessage, LocalizedError, messageFromError, LANGUAGE_KEY } from '../src/i18n-core.ts';
+import { readLocale, setCurrentLocale, getLocale, translate, renderMessage, msg, errorMessage, LocalizedError, messageFromError, LANGUAGE_KEY, LEGACY_LANGUAGE_KEY } from '../src/i18n-core.ts';
 
 test('English is the default regardless of browser language; saved Chinese is restored', () => {
   const saved = new Map();
@@ -13,6 +13,10 @@ test('English is the default regardless of browser language; saved Chinese is re
   assert.equal(readLocale(),'zh-CN');
   saved.set(LANGUAGE_KEY,'fr');
   assert.equal(readLocale(),'en');
+  saved.delete(LANGUAGE_KEY);
+  saved.set(LEGACY_LANGUAGE_KEY,'zh-CN');
+  assert.equal(readLocale(),'zh-CN');
+  assert.equal(saved.get(LANGUAGE_KEY),'zh-CN');
   setCurrentLocale('en');
 });
 

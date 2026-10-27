@@ -2,6 +2,11 @@ import { z } from "zod";
 import { LocalizedError } from "./i18n-core.ts";
 import { OUTPUT_TEMPLATE_EXAMPLE } from "./template-state.ts";
 import type { Library } from "./domain.ts";
+import {
+  LEGACY_TEMPLATE_FORMAT,
+  TEMPLATE_FORMAT,
+  type TemplateDocument,
+} from "./template-files.ts";
 
 const label = z
   .string()
@@ -80,13 +85,17 @@ export const ruleSchema = z
   );
 export const documentSchema = z
   .object({
-    format: z.literal("sales-sheet-merger.output-template"),
+    format: z.union([
+      z.literal(TEMPLATE_FORMAT),
+      z.literal(LEGACY_TEMPLATE_FORMAT),
+    ]),
     version: z.literal(1),
     id: z.string().regex(/^[A-Za-z0-9_-]{1,80}$/),
     template: templateSchema,
   })
-  .transform((d) => ({
+  .transform((d): TemplateDocument => ({
     ...d,
+    format: TEMPLATE_FORMAT,
     template: {
       ...d.template,
       name: d.template.name.trim(),
@@ -136,7 +145,7 @@ export function validateLibrary(value: unknown): Library {
     (lib.template_configured
       ? [
           {
-            format: "sales-sheet-merger.output-template" as const,
+            format: TEMPLATE_FORMAT,
             version: 1 as const,
             id: "legacy-output-template",
             template: lib.template,

@@ -3,7 +3,8 @@ import assert from 'node:assert/strict';
 import * as XLSX from 'xlsx';
 import { readBook, inspectFile, inspectSheet, parseNumber, parseDate, convertRow, duplicateKey, validateRule } from '../src/engine.ts';
 import { normal } from '../src/casefold.ts';
-import { validateLibrary } from '../src/validation.ts';
+import { documentSchema, validateLibrary } from '../src/validation.ts';
+import { TEMPLATE_FORMAT } from '../src/template-files.ts';
 
 const template={name:'Records',columns:[{id:'id',name:'ID',type:'text',required:true},{id:'date',name:'Date',type:'date',required:true},{id:'value',name:'Value',type:'number',required:true}]};
 const rule={id:'source',name:'Source',headers:['编号','日期','金额'],mappings:template.columns.map((c,i)=>({target_id:c.id,mode:'source',source_index:i,fixed:'',trim:true,fill:'',replacements:[],date_format:'%Y-%m-%d',number_style:'comma'}))};
@@ -69,7 +70,14 @@ test('invalid headers, shifted headers and input limits are reported',async()=>{
 test('legacy configuration migrates without changing customer column IDs and rejects conflicting IDs',()=>{
   const old={version:1,template,template_configured:true,rules:[rule]};
   const migrated=validateLibrary(old);assert.equal(migrated.templates.length,1);assert.deepEqual(migrated.templates[0].template,template);assert.deepEqual(migrated.rules,[rule]);
+  assert.equal(migrated.templates[0].format,TEMPLATE_FORMAT);
   assert.equal(validateLibrary({...old,template_configured:false}).templates.length,0);
   error(()=>validateLibrary({...old,rules:[rule,rule]}),'duplicate_rules');
   error(()=>validateLibrary({...old,version:2}),'library_format');
+});
+test('legacy template files are accepted and normalized to the current format',()=>{
+  const legacy={format:'sales-sheet-merger.output-template',version:1,id:'legacy',template};
+  const document=documentSchema.parse(legacy);
+  assert.equal(document.format,TEMPLATE_FORMAT);
+  assert.deepEqual(document.template,template);
 });

@@ -3,12 +3,18 @@ import zh from "../../shared/locales/zh-CN.json" with { type: "json" };
 
 export type Locale = "en" | "zh-CN";
 export type Message = { code: string; params?: Record<string, unknown> };
-export const LANGUAGE_KEY = "sales-sheet-merger.language";
+export const LANGUAGE_KEY = "sheet-merger.language";
+export const LEGACY_LANGUAGE_KEY = "sales-sheet-merger.language";
 const catalogs: Record<Locale, Record<string, string>> = { en, "zh-CN": zh };
 
 export function readLocale(): Locale {
   try {
-    return localStorage.getItem(LANGUAGE_KEY) === "zh-CN" ? "zh-CN" : "en";
+    const saved =
+      localStorage.getItem(LANGUAGE_KEY) ??
+      localStorage.getItem(LEGACY_LANGUAGE_KEY);
+    if (saved !== null && localStorage.getItem(LANGUAGE_KEY) === null)
+      localStorage.setItem(LANGUAGE_KEY, saved);
+    return saved === "zh-CN" ? "zh-CN" : "en";
   } catch {
     return "en";
   }

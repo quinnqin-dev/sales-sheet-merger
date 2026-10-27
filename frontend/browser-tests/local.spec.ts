@@ -6,7 +6,7 @@ import { readdirSync } from "node:fs";
 const template={name:"Student grades",columns:[{id:"student",name:"Student ID",type:"text",required:true},{id:"name",name:"Name",type:"text",required:true},{id:"subject",name:"Subject",type:"text",required:true},{id:"score",name:"Score",type:"number",required:true}]};
 const headers=[["学号","姓名","科目","成绩"],["Student ID","Student Name","Subject","Points"]];
 const rules=headers.map((headers,n)=>({id:`source-${n}`,name:`Class ${n+1}`,headers,mappings:template.columns.map((c,i)=>({target_id:c.id,mode:"source",source_index:i,fixed:"",trim:true,fill:"",replacements:[],date_format:"%Y-%m-%d",number_style:"comma"}))}));
-const library={version:1,template,template_configured:true,rules,templates:[{format:"sales-sheet-merger.output-template",version:1,id:"grades",template,file_name:"grades.sheet-template.json"}]};
+const library={version:1,template,template_configured:true,rules,templates:[{format:"sheet-merger.output-template",version:1,id:"grades",template,file_name:"grades.sheet-template.json"}]};
 async function open(page:Page) {
   page.on("dialog",dialog=>dialog.accept());
   await page.goto("/"); await expect(page.getByRole("heading",{name:"Merge spreadsheets",exact:true})).toBeVisible();

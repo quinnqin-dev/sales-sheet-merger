@@ -5,7 +5,7 @@ from pathlib import Path
 
 from fastapi import HTTPException
 
-LOCALE = ContextVar('sales_merger_locale', default='en')
+LOCALE = ContextVar('sheet_merger_locale', default='en')
 
 # English is the source language. User-authored values never pass through this catalog.
 _CATALOG_DIR = Path(__file__).resolve().parents[1] / 'shared/locales'

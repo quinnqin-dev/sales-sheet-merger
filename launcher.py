@@ -15,7 +15,7 @@ opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 def is_running():
     try:
         with opener.open(URL + '/api/health', timeout=0.5) as response:
-            return json.load(response).get('app') == 'sales-sheet-merger'
+            return json.load(response).get('app') == 'sheet-merger'
     except (OSError, ValueError):
         return False
 

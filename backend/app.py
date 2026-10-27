@@ -29,7 +29,15 @@ from .i18n import (LOCALE, DomainError, Problem, descriptor, error_fields, local
 from .models import DEFAULT_TEMPLATE, InspectRequest, Library, Rule, RunRequest, Template, TemplateFile, SavedTemplate
 
 ROOT = Path(__file__).resolve().parents[1]
-DATA_DIR = Path(os.environ.get('SALES_MERGER_DATA_DIR', str(Path.home() / 'Library/Application Support/SalesSheetMerger')))
+NEW_DATA_DIR = Path.home() / 'Library/Application Support/SheetMerger'
+LEGACY_DATA_DIR = Path.home() / 'Library/Application Support/SalesSheetMerger'
+configured_data_dir = (
+    os.environ.get('SHEET_MERGER_DATA_DIR')
+    or os.environ.get('SALES_MERGER_DATA_DIR')
+)
+DATA_DIR = Path(configured_data_dir) if configured_data_dir else (
+    LEGACY_DATA_DIR if LEGACY_DATA_DIR.exists() else NEW_DATA_DIR
+)
 STATE_LOCK = threading.RLock()
 RUN_LOCK = threading.Lock()
 BATCHES = {}
@@ -181,7 +189,7 @@ def inspect_file(item, options):
 
 @app.get('/api/health')
 def health():
-    return {'status': 'ok', 'app': 'sales-sheet-merger', 'max_files': 30, 'max_rows': MAX_ROWS}
+    return {'status': 'ok', 'app': 'sheet-merger', 'max_files': 30, 'max_rows': MAX_ROWS}
 
 
 @app.get('/api/config')

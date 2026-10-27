@@ -7,7 +7,7 @@ from test_merger import client, csv_bytes, make_rule, upload
 
 
 def document(template_id='student-grades', name='Student grades'):
-    return {'format': 'sales-sheet-merger.output-template', 'version': 1, 'id': template_id,
+    return {'format': 'sheet-merger.output-template', 'version': 1, 'id': template_id,
             'template': {'name': name, 'columns': [
                 {'id': 'student_id', 'name': 'Student ID', 'type': 'text', 'required': True},
                 {'id': 'score', 'name': 'Score', 'type': 'number', 'required': True}]}}
@@ -39,6 +39,15 @@ def test_create_edit_and_import_preserve_files_rules_and_active_template(client)
     assert not reset['template_configured'] and reset['templates'] == [changed]
     backup = client.get('/api/config/export').json()
     assert client.post('/api/config/import', json=backup).json() == backup
+
+
+def test_legacy_template_format_is_accepted_and_migrated(client):
+    legacy = {**document('legacy-format'), 'file_name': 'legacy.json',
+              'format': 'sales-sheet-merger.output-template'}
+    response = client.post('/api/templates', json=legacy)
+    assert response.status_code == 200
+    saved = next(t for t in response.json()['templates'] if t['id'] == 'legacy-format')
+    assert saved['format'] == 'sheet-merger.output-template'
 
 
 def test_validate_template_files_without_mutating_the_library(client):

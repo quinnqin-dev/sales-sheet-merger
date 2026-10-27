@@ -58,14 +58,19 @@ class Rule(BaseModel):
         return self
 
 
+TEMPLATE_FORMAT = 'sheet-merger.output-template'
+LEGACY_TEMPLATE_FORMAT = 'sales-sheet-merger.output-template'
+
+
 class TemplateFile(BaseModel):
-    format: Literal['sales-sheet-merger.output-template']
+    format: Literal[TEMPLATE_FORMAT, LEGACY_TEMPLATE_FORMAT]
     version: Literal[1] = 1
     id: str = Field(min_length=1, max_length=80, pattern=r'^[A-Za-z0-9_-]+$')
     template: Template
 
     @model_validator(mode='after')
     def normalize_names(self):
+        self.format = TEMPLATE_FORMAT
         self.template.name = self.template.name.strip()
         for column in self.template.columns:
             column.name = column.name.strip()
@@ -92,7 +97,7 @@ class Library(BaseModel):
             template = value['template']
             content = template.model_dump() if isinstance(template, Template) else template
             template_id = str(uuid.uuid5(uuid.NAMESPACE_URL, json.dumps(content, sort_keys=True, ensure_ascii=False)))
-            return {**value, 'templates': [{'format': 'sales-sheet-merger.output-template',
+            return {**value, 'templates': [{'format': TEMPLATE_FORMAT,
                     'version': 1, 'id': template_id, 'template': content, 'file_name': ''}]}
         return value
 

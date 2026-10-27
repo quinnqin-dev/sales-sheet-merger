@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { templateDocument, chooseTemplateFile, writeTemplateFile, TemplateFileError } from '../src/template-files.ts';
+import { templateDocument, chooseTemplateFile, writeTemplateFile, TemplateFileError, TEMPLATE_FORMAT } from '../src/template-files.ts';
 
 const template = {name:'Student grades',columns:[{id:'student',name:'Student ID',type:'text',required:true}]};
 
@@ -10,6 +10,7 @@ test('template files contain versioned configuration and preserve column IDs', a
   await writeTemplateFile({name:'grades.json', async createWritable(){ return {async write(value){output=value;},async close(){closed=true;}};}},doc);
   assert.equal(closed,true);
   assert.deepEqual(JSON.parse(output),doc);
+  assert.equal(JSON.parse(output).format,TEMPLATE_FORMAT);
   assert.equal(JSON.parse(output).template.columns[0].id,'student');
   assert.deepEqual(Object.keys(JSON.parse(output)),['format','version','id','template']);
   assert.notEqual(templateDocument(template).id,templateDocument(template).id);
