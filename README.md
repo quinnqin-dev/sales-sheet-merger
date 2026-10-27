@@ -27,7 +27,7 @@ The optional sales example has English field names. Existing template names, col
 
 ## Workflow
 
-1. **Import files:** drag or select `.xlsx` and `.csv` files. The first readable worksheet in each file is selected by default; select more as needed. Expand a file to preview it, adjust the header row, or change CSV encoding between UTF-8 and GB18030.
+1. **Import files:** drag or select `.xlsx`, `.xls`, and `.csv` files. The first readable worksheet in each file is selected by default; select more as needed. Expand a file to preview it, adjust the header row, or change CSV encoding between UTF-8 and GB18030.
 2. **Configure rules:** on first use, Next prompts you to configure an output template. Go to Output template, fill in a name and at least one target column, then Save and return. Your files and worksheet selections stay in place; click Next again. Once configured, the template is reused without this prompt. Matching headers suggest saved rules, ignoring column order. Review each mapping and choose a source column, fixed value, or empty value for every target. Optionally save it to the source-rule library.
 3. **Preview & check:** inspect the first 20 selected rows. Return to the rules to correct a conversion before merging.
 4. **Merge & export:** process all selected data, review valid/problem/duplicate rows, and download an Excel workbook.
@@ -44,14 +44,14 @@ The **Output template** page edits column names, order, types, and required stat
 - Order IDs and SKUs remain text. Existing text leading zeros and simple `000000` display formats are preserved; digits already lost in a source file cannot be reconstructed.
 - Entirely blank rows are skipped and counted separately. Required-value and conversion errors are isolated with the source values and reasons. Unreadable files must be removed or fixed before proceeding. Valid rows + problem rows = data rows read.
 - Exact duplicate detection compares all converted target fields; numeric `1.0` and `1.00` are equivalent. Duplicate rows are retained and grouped. Matching order IDs alone do not imply duplicates.
-- Formulas use saved calculation caches only; no formulas are executed or recalculated. Missing caches in mapped cells become issues. Exported text cannot become an Excel formula. Excessive text length and unsupported control characters are isolated.
+- Formulas use saved calculation caches only; no formulas are executed or recalculated. In `.xlsx`, missing caches in mapped cells become issues. The `.xls` reader exposes saved results only; an unavailable result may appear empty and follows the usual fill/required-value rules. Save/recalculate source formulas in Excel before importing. Exported text cannot become an Excel formula. Excessive text length and unsupported control characters are isolated.
 - Excel export contains **one worksheet only: Sales Details** (销售明细 for Chinese jobs), with valid merged records in exact template-column order. Problem rows, reasons, source information, counts, and duplicate warnings remain available on the results page while the session is running. They are not included as extra worksheets. Source files are never overwritten.
 
 ## Data and limits
 
 Settings remain at `~/Library/Application Support/SalesSheetMerger/library.json`. Temporary batches, SQLite results, and generated exports use its `temporary/` subdirectory and are cleared on normal exit or the next startup. Downloaded files are kept where you save them. A file lock prevents another instance from clearing active data.
 
-Limits: **30 files and 100,000 selected data rows per batch**, 50 MB per file, 1,000 source columns, 200,000 physical rows per sheet, and 256 MB uncompressed Excel content. One merge runs at a time. Legacy `.xls`, joins, aggregation, accounts, cloud sync, and complex merged-cell layouts are outside version 1.
+Limits: **30 files and 100,000 selected data rows per batch**, 50 MB per file, 1,000 source columns, 200,000 physical rows per sheet, and 256 MB uncompressed `.xlsx` content. One merge runs at a time. Joins, aggregation, accounts, cloud sync, and complex merged-cell layouts are outside version 1.
 
 The service binds only to `127.0.0.1` and checks local Host and Origin headers. There are no remote fonts, scripts, or analytics. Sales files, personal rules, temporary results, and downloads are excluded from Git.
 

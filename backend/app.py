@@ -281,7 +281,7 @@ async def upload_files(batch_id: str, files: list[UploadFile] = File(...)):
             items.append((uploaded, item, suffix))
     for uploaded, item, suffix in items:
         try:
-            if suffix not in ('.xlsx', '.csv'):
+            if suffix not in ('.xlsx', '.xls', '.csv'):
                 item.update(error_fields('unsupported_file'))
                 continue
             with item['path'].open('wb') as dest:

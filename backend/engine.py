@@ -1,6 +1,7 @@
 """Streaming readers and the single conversion pipeline used by preview and jobs."""
 import csv
 import hashlib
+import io
 import json
 import math
 import re
@@ -12,6 +13,7 @@ from itertools import zip_longest
 from pathlib import Path
 
 from openpyxl import load_workbook
+import xlrd
 
 from .models import Rule, Template
 from .i18n import DomainError, localize_reason
@@ -50,8 +52,11 @@ def check_xlsx(path: Path):
 
 
 def sheet_names(path):
-    if path.suffix == '.csv':
+    if path.suffix.lower() == '.csv':
         return ['CSV']
+    if path.suffix.lower() == '.xls':
+        with open_xls(path) as book:
+            return book.sheet_names()
     check_xlsx(path)
     book = load_workbook(path, read_only=True, data_only=True)
     try:
@@ -60,9 +65,47 @@ def sheet_names(path):
         book.close()
 
 
+def open_xls(path):
+    # Load one sheet at a time and retain formats for dates and padded IDs.
+    # Keep reader diagnostics out of the service log (they may contain source data).
+    return xlrd.open_workbook(str(path), on_demand=True, formatting_info=True,
+                              ragged_rows=True, logfile=io.StringIO())
+
+
+def read_xls_rows(path, sheet):
+    with open_xls(path) as book:
+        source = book.sheet_by_name(sheet)
+        if source.ncols > MAX_COLUMNS:
+            raise DomainError('column_limit')
+        for row_index in range(source.nrows):
+            values = []
+            for cell in source.row(row_index):
+                value = cell.value
+                if cell.ctype in (xlrd.XL_CELL_EMPTY, xlrd.XL_CELL_BLANK):
+                    value = None
+                elif cell.ctype == xlrd.XL_CELL_DATE:
+                    value = xlrd.xldate_as_datetime(value, book.datemode)
+                elif cell.ctype == xlrd.XL_CELL_BOOLEAN:
+                    value = bool(value)
+                elif cell.ctype == xlrd.XL_CELL_ERROR:
+                    value = xlrd.error_text_from_code.get(value, '#ERROR!')
+                elif cell.ctype == xlrd.XL_CELL_NUMBER:
+                    number_format = book.format_map[book.xf_list[cell.xf_index].format_key].format_str
+                    if re.fullmatch(r'0{2,}', number_format or '') and value.is_integer():
+                        value = str(int(value)).zfill(len(number_format))
+                    elif value.is_integer():
+                        value = int(value)
+                values.append(value)
+            # xlrd exposes saved results, not the original formula expressions.
+            yield row_index + 1, values, set(), values
+
+
 def read_rows(path: Path, sheet: str, encoding='utf-8-sig'):
     """Yield (original row, values, missing-formula-cache columns, raw values)."""
-    if path.suffix == '.csv':
+    if path.suffix.lower() == '.xls':
+        yield from read_xls_rows(path, sheet)
+        return
+    if path.suffix.lower() == '.csv':
         with path.open('r', encoding=encoding, newline='') as handle:
             sample = handle.read(8192)
             handle.seek(0)

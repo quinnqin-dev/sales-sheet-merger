@@ -765,7 +765,7 @@ function App() {
                         {t("ui.chooseFiles")}
                       </button>
                       <div className="upload-limits">
-                        .xlsx / .csv <span>·</span>
+                        .xlsx / .xls / .csv <span>·</span>
                         {t("ui.upTo30Files")} <span>·</span>
                         {t("ui.100000RowsTotal")}
                       </div>
@@ -774,7 +774,7 @@ function App() {
                         aria-label={t("ui.uploadSalesFiles")}
                         type="file"
                         multiple
-                        accept=".xlsx,.csv"
+                        accept=".xlsx,.xls,.csv"
                         hidden
                         onChange={(e) => void upload(e.target.files)}
                       />

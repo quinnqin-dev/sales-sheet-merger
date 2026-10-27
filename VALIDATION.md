@@ -46,3 +46,9 @@ Browser verification of the manual/reset flow confirmed empty actual input value
 ## Single-sheet export
 
 The default Excel download now contains only the merged valid-data worksheet. Problem rows and Processing Summary are no longer exported as worksheets. The page/API still retain problem reasons, raw source values, counts, and duplicate flags for the current session. Export tests cover mixed valid/error rows, an all-error batch (header-only output), both worksheet languages, preserved numeric/date/text types, and the 100,000-row export.
+
+## Legacy XLS import
+
+Added `xlrd` for actual BIFF `.xls` imports; `xlwt` is used only to generate synthetic test fixtures. Import acceptance and both language catalogs now list `.xlsx`, `.xls`, and `.csv`; export remains a single-sheet `.xlsx` file.
+
+All 50 backend tests and 10 frontend tests passed, together with the production build, formatting, and dependency checks. The full 30-file/100,000-row export check completed in 12.46 seconds on this Mac. New end-to-end tests mix XLS/XLSX/CSV, select multiple XLS sheets, reuse saved rules, correct header rows, handle corrupt files, retain leading-zero identifiers, and verify native dates under both the 1900 and 1904 date systems after reopening the export. Cell-type checks cover booleans, integers, text, Excel errors, and an empty cached formula result. The XLS reader exposes saved formula results only; it cannot distinguish an unavailable result from an empty result, as documented in both READMEs.
