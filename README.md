@@ -27,6 +27,8 @@ The optional sales example has English field names. Existing template names, col
 
 ## Workflow
 
+Open **User guide** in the sidebar for a short four-step walkthrough with actual student-grade example screenshots. The text and screenshots follow the selected language; click any screenshot to view it larger.
+
 1. **Import files:** drag or select `.xlsx`, `.xls`, and `.csv` files. The first readable worksheet in each file is selected by default; select more as needed. Expand a file to preview it, adjust the header row, or change CSV encoding between UTF-8 and GB18030.
 2. **Configure rules:** on first use, Next prompts you to configure an output template. Go to Output template, fill in a name and at least one target column, then Save and return. Your files and worksheet selections stay in place; click Next again. Once configured, the template is reused without this prompt. Matching headers suggest saved rules, ignoring column order. Review each mapping and choose a source column, fixed value, or empty value for every target. Optionally save it to the source-rule library.
 3. **Preview & check:** inspect the first 20 selected rows. Return to the rules to correct a conversion before merging.

@@ -43,6 +43,7 @@ import {
   X,
 } from "lucide-react";
 import "./style.css";
+import { UserGuide } from "./UserGuide";
 import {
   initialTemplateDraft,
   SALES_TEMPLATE_EXAMPLE,
@@ -1612,53 +1613,7 @@ function App() {
               }}
             />
           )}
-          {view === "help" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">{t("ui.beforeYouStart")}</div>
-                  <h1>{t("ui.makeTheNextImportEasier")}</h1>
-                  <p>{t("ui.confirmYourRulesWithASmallBatch")}</p>
-                </div>
-              </div>
-              <div className="help-grid">
-                {[
-                  {
-                    n: "01",
-                    title: t("ui.importSelect"),
-                    text: t("ui.supportsXlsxAndCsvTheFirstReadable"),
-                  },
-                  {
-                    n: "02",
-                    title: t("ui.mapClean"),
-                    text: t("ui.chooseASourceColumnFixedValueOr"),
-                  },
-                  {
-                    n: "03",
-                    title: t("ui.checkExport"),
-                    text: t("ui.previewTheFirst20RowsThenMerge"),
-                  },
-                  {
-                    n: "04",
-                    title: t("ui.saveReuse"),
-                    text: t("ui.rulesAreSavedLocallyAndSurviveRestarts"),
-                  },
-                ].map((item) => (
-                  <div className="panel help-card" key={item.n}>
-                    <span>{item.n}</span>
-                    <h2>{item.title}</h2>
-                    <p>{item.text}</p>
-                  </div>
-                ))}
-              </div>
-              <div className="panel help-limits">
-                <h3>{t("ui.version1Limits")}</h3>
-                <p>{t("ui.upTo30FilesAnd100000")}</p>
-                <p>{t("ui.storeOrderIdsAndSkusAsText")}</p>
-                <p>{t("ui.temporaryDataIsClearedOnExitOr")}</p>
-              </div>
-            </>
-          )}
+          {view === "help" && <UserGuide onReturn={() => setView("merge")} />}
           <footer className="page-footer">
             <span>{t("ui.salesSheetMergerEverySourceOneConsistent")}</span>
             <span>

@@ -52,3 +52,12 @@ The default Excel download now contains only the merged valid-data worksheet. Pr
 Added `xlrd` for actual BIFF `.xls` imports; `xlwt` is used only to generate synthetic test fixtures. Import acceptance and both language catalogs now list `.xlsx`, `.xls`, and `.csv`; export remains a single-sheet `.xlsx` file.
 
 All 50 backend tests and 10 frontend tests passed, together with the production build, formatting, and dependency checks. The full 30-file/100,000-row export check completed in 12.46 seconds on this Mac. New end-to-end tests mix XLS/XLSX/CSV, select multiple XLS sheets, reuse saved rules, correct header rows, handle corrupt files, retain leading-zero identifiers, and verify native dates under both the 1900 and 1904 date systems after reopening the export. Cell-type checks cover booleans, integers, text, Excel errors, and an empty cached formula result. The XLS reader exposes saved formula results only; it cannot distinguish an unavailable result from an empty result, as documented in both READMEs.
+
+
+## Illustrated user guide
+
+Replaced the former feature-oriented help cards with four concrete steps: import files, manually configure an output template, map each source, and preview/merge/download. The guide distinguishes the output template from source rules, explains reuse, and keeps header/encoding, backup, and session tips in collapsible sections.
+
+Eight WebP screenshots (four per language, about 310 KB total) were captured from the actual app in an isolated local environment using synthetic student-grade CSV inputs: two sources, 12 records each, 24 valid output records. No personal templates, saved rules, or imported batches were changed. Screenshots open in a new tab at full size and have localized descriptions. The guide remains English by default and uses Chinese screenshots when switched to Chinese. Screenshot source column names are sample data and are kept separate from translated interface text.
+
+Verified the live production guide in Chrome, all four English screenshot assets and full-size links, and the Chinese four-step content and page layout. All 10 frontend tests, 14 backend internationalization tests, the production build, formatting, and diff checks passed. The processing engine was unchanged by this guide update.
