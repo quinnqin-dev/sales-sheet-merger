@@ -16,6 +16,8 @@ class Template(BaseModel):
 
     @model_validator(mode='after')
     def unique_columns(self):
+        if not self.name.strip():
+            raise DomainError('invalid_columns')
         for attr in ('id', 'name'):
             values = [getattr(c, attr).strip() for c in self.columns]
             if not all(values) or len(values) != len(set(values)):
@@ -57,6 +59,8 @@ class Rule(BaseModel):
 class Library(BaseModel):
     version: Literal[1] = 1
     template: Template
+    # Version-1 libraries without this field already contain a saved template.
+    template_configured: bool = True
     rules: list[Rule] = Field(default_factory=list, max_length=500)
 
     @model_validator(mode='after')

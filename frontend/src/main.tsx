@@ -43,6 +43,12 @@ import {
   X,
 } from "lucide-react";
 import "./style.css";
+import {
+  initialTemplateDraft,
+  validTemplateDraft,
+  type Column,
+  type Template,
+} from "./template-state";
 
 function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
@@ -60,16 +66,6 @@ function LanguageSwitcher() {
     </label>
   );
 }
-type Column = {
-  id: string;
-  name: string;
-  type: "text" | "number" | "date";
-  required: boolean;
-};
-type Template = {
-  name: string;
-  columns: Column[];
-};
 type Mapping = {
   target_id: string;
   mode: "source" | "fixed" | "empty";
@@ -93,6 +89,7 @@ type Rule = {
 type Library = {
   version: 1;
   template: Template;
+  template_configured: boolean;
   rules: Rule[];
 };
 type Sheet = {
@@ -280,6 +277,8 @@ function App() {
   const { t } = useI18n();
   const [library, setLibrary] = useState<Library | null>(null);
   const [view, setView] = useState("merge");
+  const [templatePrompt, setTemplatePrompt] = useState(false);
+  const [returnFromTemplate, setReturnFromTemplate] = useState(false);
   const [step, setStep] = useState(1);
   const [batch, setBatch] = useState("");
   const [files, setFiles] = useState<SourceFile[]>([]);
@@ -549,6 +548,8 @@ function App() {
     setPreview([]);
     setJob(null);
     setError(null);
+    setTemplatePrompt(false);
+    setReturnFromTemplate(false);
   }
   if (!library)
     return (
@@ -571,6 +572,7 @@ function App() {
           onClick={(e) => {
             e.preventDefault();
             setView("merge");
+            setReturnFromTemplate(false);
           }}
         >
           <span className="brand-icon">
@@ -594,6 +596,7 @@ function App() {
               disabled={!!busy || running}
               onClick={() => {
                 setView(item.id);
+                setReturnFromTemplate(false);
                 setError(null);
               }}
             >
@@ -617,7 +620,10 @@ function App() {
         <button
           className={`nav-item help ${view === "help" ? "active" : ""}`}
           disabled={!!busy || running}
-          onClick={() => setView("help")}
+          onClick={() => {
+            setView("help");
+            setReturnFromTemplate(false);
+          }}
         >
           <HelpCircle size={18} />
           {t("ui.userGuide")}
@@ -986,14 +992,18 @@ function App() {
                       <div className="overview-row">
                         <span>{t("ui.outputFormat")}</span>
                         <strong>
-                          {t("ui.outputColumns", {
-                            count: library.template.columns.length,
-                          })}
+                          {library.template_configured
+                            ? t("ui.outputColumns", {
+                                count: library.template.columns.length,
+                              })
+                            : t("ui.outputTemplateNotConfigured")}
                         </strong>
                       </div>
                       <div className="template-label">
                         <Table2 size={15} />
-                        {library.template.name}
+                        {library.template_configured
+                          ? library.template.name
+                          : t("ui.outputTemplateNotConfigured")}
                       </div>
                       {rowCount > 100000 && (
                         <p className="inline-error">
@@ -1004,8 +1014,12 @@ function App() {
                         className="btn primary full"
                         disabled={blockers || !!busy}
                         onClick={() => {
-                          setStep(2);
                           setError(null);
+                          if (!library.template_configured) {
+                            setTemplatePrompt(true);
+                            return;
+                          }
+                          setStep(2);
                         }}
                       >
                         {t("ui.nextConfigureRules")}
@@ -1546,6 +1560,13 @@ function App() {
           {view === "template" && (
             <TemplateEditor
               template={library.template}
+              configured={library.template_configured}
+              returnToBatch={returnFromTemplate}
+              onReturn={() => {
+                setReturnFromTemplate(false);
+                setView("merge");
+                setStep(1);
+              }}
               busy={!!busy}
               onSave={async (updatedTemplate) => {
                 await action(msg("ui.savingTemplate"), async () => {
@@ -1561,6 +1582,10 @@ function App() {
                     ),
                   );
                   setStep(1);
+                  if (returnFromTemplate) {
+                    setReturnFromTemplate(false);
+                    setView("merge");
+                  }
                   setNotice(msg("ui.templateSavedConfirmThisBatchSMappings"));
                 });
               }}
@@ -1635,6 +1660,16 @@ function App() {
               : undefined
           }
           error={error}
+        />
+      )}
+      {templatePrompt && (
+        <TemplateRequiredDialog
+          onClose={() => setTemplatePrompt(false)}
+          onConfigure={() => {
+            setTemplatePrompt(false);
+            setReturnFromTemplate(true);
+            setView("template");
+          }}
         />
       )}
     </div>
@@ -2104,24 +2139,75 @@ function RuleEditor({
     </div>
   );
 }
+function TemplateRequiredDialog({
+  onClose,
+  onConfigure,
+}: {
+  onClose: () => void;
+  onConfigure: () => void;
+}) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="template-required-dialog"
+      aria-labelledby="template-required-title"
+      aria-describedby="template-required-description"
+      onCancel={(e) => {
+        e.preventDefault();
+        onClose();
+      }}
+    >
+      <div className="template-required-heading">
+        <span className="file-icon">
+          <Table2 size={25} />
+        </span>
+        <LanguageSwitcher />
+      </div>
+      <h2 id="template-required-title">{t("ui.outputTemplateRequired")}</h2>
+      <p id="template-required-description">
+        {t("ui.outputTemplateRequiredDescription")}
+      </p>
+      <div className="button-group">
+        <button className="btn secondary" onClick={onClose}>
+          {t("ui.notNow")}
+        </button>
+        <button className="btn primary" autoFocus onClick={onConfigure}>
+          {t("ui.goToOutputTemplate")}
+          <ArrowRight size={16} />
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 function TemplateEditor({
   template,
+  configured,
+  returnToBatch,
+  onReturn,
   busy,
   onSave,
 }: {
   template: Template;
+  configured: boolean;
+  returnToBatch: boolean;
+  onReturn: () => void;
   busy: boolean;
   onSave: (t: Template) => Promise<void>;
 }) {
   const { t } = useI18n();
-  const [draft, setDraft] = useState(() => structuredClone(template));
+  const [draft, setDraft] = useState(() =>
+    initialTemplateDraft(template, configured),
+  );
   const dirty = JSON.stringify(draft) !== JSON.stringify(template);
-  const valid =
-    draft.name.trim() &&
-    draft.columns.length > 0 &&
-    draft.columns.every((c) => c.name.trim()) &&
-    new Set(draft.columns.map((c) => c.name.trim())).size ===
-      draft.columns.length;
+  const valid = validTemplateDraft(draft);
   const patch = (id: string, p: Partial<Column>) =>
     setDraft((old) => ({
       ...old,
@@ -2142,29 +2228,61 @@ function TemplateEditor({
           <h1>{t("ui.standardTemplate")}</h1>
           <p>{t("ui.everySourceIsExportedUsingTheseColumns")}</p>
         </div>
-        <button
-          className="btn primary"
-          disabled={busy || !dirty || !valid}
-          onClick={() =>
-            void onSave({
-              ...draft,
-              name: draft.name.trim(),
-              columns: draft.columns.map((c) => ({
-                ...c,
-                name: c.name.trim(),
-              })),
-            })
-          }
-        >
-          <Save size={16} />
-          {t("ui.saveTemplate")}
-        </button>
+        <div className="button-group">
+          {returnToBatch && (
+            <button className="btn subtle" disabled={busy} onClick={onReturn}>
+              <ArrowLeft size={16} />
+              {t("ui.backToImport")}
+            </button>
+          )}
+          <button
+            className="btn primary"
+            disabled={busy || (configured && !dirty) || !valid}
+            onClick={() =>
+              void onSave({
+                ...draft,
+                name: draft.name.trim(),
+                columns: draft.columns.map((c) => ({
+                  ...c,
+                  name: c.name.trim(),
+                })),
+              })
+            }
+          >
+            <Save size={16} />
+            {t(returnToBatch ? "ui.saveAndReturn" : "ui.saveTemplate")}
+          </button>
+        </div>
       </div>
+      {!configured && (
+        <div className="panel template-example">
+          <div className="section-heading">
+            <div>
+              <h2>{t("ui.salesTemplateExample")}</h2>
+              <p>{t("ui.templateExampleExplanation")}</p>
+            </div>
+            <button
+              className="btn secondary"
+              disabled={busy}
+              onClick={() => setDraft(structuredClone(template))}
+            >
+              {t("ui.useSalesExample")}
+            </button>
+          </div>
+          <strong>Standard Sales Details</strong>
+          <div className="example-columns">
+            {template.columns.map((c) => (
+              <span key={c.id}>{c.name}</span>
+            ))}
+          </div>
+        </div>
+      )}
       <div className="panel section-panel template-panel">
         <label className="template-name-label">
           {t("ui.templateName")}
           <input
             value={draft.name}
+            placeholder="Standard Sales Details"
             maxLength={80}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
@@ -2189,6 +2307,9 @@ function TemplateEditor({
                   <input
                     aria-label={t("ui.columnName", { p0: i + 1 })}
                     value={c.name}
+                    placeholder={
+                      template.columns[i]?.name || t("ui.targetColumnName")
+                    }
                     maxLength={80}
                     onChange={(e) => patch(c.id, { name: e.target.value })}
                   />
@@ -2275,9 +2396,7 @@ function TemplateEditor({
                 ...draft.columns,
                 {
                   id: crypto.randomUUID(),
-                  name: t("ui.newFieldName", {
-                    count: draft.columns.length + 1,
-                  }),
+                  name: "",
                   type: "text",
                   required: false,
                 },
@@ -2288,11 +2407,12 @@ function TemplateEditor({
           <Plus size={16} />
           {t("ui.addTargetColumn")}
         </button>
-        {!valid && (
-          <p className="inline-error">
-            {t("ui.templateAndColumnNamesCannotBeEmpty")}
-          </p>
-        )}
+        {!valid &&
+          (draft.name !== "" || draft.columns.some((c) => c.name !== "")) && (
+            <p className="inline-error">
+              {t("ui.templateAndColumnNamesCannotBeEmpty")}
+            </p>
+          )}
       </div>
       <div className="template-footnote">
         <CircleAlert size={16} />

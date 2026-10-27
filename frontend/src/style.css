@@ -1822,3 +1822,80 @@ td {
 .topbar-actions {
   flex-shrink: 0;
 }
+
+.template-required-dialog {
+  width: 470px;
+  max-width: calc(100vw - 32px);
+  border: 1px solid #dfe7dc;
+  border-radius: 14px;
+  padding: 27px;
+  color: #273b34;
+  box-shadow: 0 22px 80px #10211833;
+}
+.template-required-dialog::backdrop {
+  background: #1f302e66;
+  backdrop-filter: blur(3px);
+}
+.template-required-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.template-required-dialog h2 {
+  font-size: 20px;
+  margin-bottom: 12px;
+}
+.template-required-dialog p {
+  font-size: 12px;
+  margin-bottom: 25px;
+}
+.template-required-dialog > .button-group {
+  justify-content: flex-end;
+  flex-wrap: wrap;
+}
+.template-example {
+  padding: 22px;
+  margin-bottom: 20px;
+  background: #fafbf7;
+}
+.template-example .section-heading {
+  margin: 0 0 18px;
+}
+.template-example .section-heading > div {
+  min-width: 0;
+}
+.template-example h2 {
+  font-size: 13px;
+}
+.template-example p {
+  max-width: 560px;
+  font-size: 11px;
+}
+.template-example > strong {
+  font-size: 12px;
+  color: #728267;
+  font-weight: 500;
+}
+.example-columns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 12px;
+}
+.example-columns > span {
+  background: #eef2e8;
+  color: #7c8973;
+  border: 1px solid #e1e8d9;
+  padding: 6px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+}
+@media (max-width: 650px) {
+  .template-example .section-heading {
+    flex-wrap: wrap;
+  }
+  .template-required-dialog {
+    padding: 22px;
+  }
+}

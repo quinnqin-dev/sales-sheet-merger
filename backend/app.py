@@ -55,7 +55,7 @@ def load_library():
                 return Library.model_validate_json(library_path().read_text('utf-8'))
             except (ValueError, OSError):
                 raise Problem(500, 'library_unreadable') from None
-        return Library(template=DEFAULT_TEMPLATE)
+        return Library(template=DEFAULT_TEMPLATE, template_configured=False)
 
 
 @asynccontextmanager
@@ -191,6 +191,7 @@ def put_template(template: Template):
     with STATE_LOCK:
         lib = load_library()
         lib.template = template
+        lib.template_configured = True
         save_library(lib)
     return lib
 

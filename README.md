@@ -23,16 +23,16 @@ The interface starts in **English**, regardless of the browser or operating-syst
 
 System-generated worksheet names, issue descriptions, and summary labels use the language selected **when the merge starts**. Changing the interface while processing or before downloading does not change that job's export language. To export in another language, start a new merge in that language.
 
-New default templates have English field names. Existing template names, column names, rules, source headers, filenames, and sales values are customer content: they are never automatically translated or overwritten when switching languages.
+The optional sales example has English field names. Existing template names, column names, rules, source headers, filenames, and sales values are customer content: they are never automatically translated or overwritten when switching languages.
 
 ## Workflow
 
 1. **Import files:** drag or select `.xlsx` and `.csv` files. The first readable worksheet in each file is selected by default; select more as needed. Expand a file to preview it, adjust the header row, or change CSV encoding between UTF-8 and GB18030.
-2. **Configure rules:** matching headers suggest saved rules, ignoring column order. Review each mapping and choose a source column, fixed value, or empty value for every target. Optionally save it to the source-rule library.
+2. **Configure rules:** on first use, Next prompts you to configure an output template. Go to Output template, fill in a name and at least one target column, then Save and return. Your files and worksheet selections stay in place; click Next again. Once configured, the template is reused without this prompt. Matching headers suggest saved rules, ignoring column order. Review each mapping and choose a source column, fixed value, or empty value for every target. Optionally save it to the source-rule library.
 3. **Preview & check:** inspect the first 20 selected rows. Return to the rules to correct a conversion before merging.
 4. **Merge & export:** process all selected data, review valid/problem/duplicate rows, and download an Excel workbook.
 
-The **Standard template** page edits column names, order, types, and required status. The default fields are Date, Order ID, SKU, Product, Quantity, Unit Price, Sales Amount, and Channel; Date and Sales Amount are required. Template changes require reconfirming this batch's mappings.
+The **Output template** page edits column names, order, types, and required status. First use starts with a blank form; Standard Sales Details and its fields are only examples, not configured output. You may explicitly choose **Use sales example**, then save it, or enter your own fields (for example Student ID and Score). Blank or duplicate target names cannot be saved. After saving, source mappings must be confirmed again. Existing saved templates are recognized automatically and retain their names, fields, IDs, and rules.
 
 **Source rules** supports editing, copying, deletion, and JSON library backups. Import replaces the current template and saved rules after confirmation. Export a backup first.
 
@@ -72,6 +72,6 @@ npm --prefix frontend test
 
 Vite proxies `/api` to the local backend in development. FastAPI serves the production build on the same origin. Interactive API documentation is available at `/docs`. `SALES_MERGER_DATA_DIR` selects an isolated application-data directory for development/testing.
 
-English and Simplified Chinese catalogs live in `shared/locales/` and are used by both frontend and backend. Keep message keys and interpolation placeholders identical in both files. UI state stores message codes/parameters, not pretranslated notices. API requests send `Accept-Language: en` or `zh-CN`; missing/unsupported languages fall back to English. Error responses retain `detail` and add `code`/`params`; file/job errors add `error_code`/`error_params`, row reasons add `code`/`params`, and jobs expose `phase_code` and their fixed export `locale`. User-data schemas and library version 1 are unchanged.
+English and Simplified Chinese catalogs live in `shared/locales/` and are used by both frontend and backend. Keep message keys and interpolation placeholders identical in both files. UI state stores message codes/parameters, not pretranslated notices. API requests send `Accept-Language: en` or `zh-CN`; missing/unsupported languages fall back to English. Error responses retain `detail` and add `code`/`params`; file/job errors add `error_code`/`error_params`, row reasons add `code`/`params`, and jobs expose `phase_code` and their fixed export `locale`. The version-1 library adds `template_configured`. Fresh installations return false until a template is saved; legacy saved/imported libraries without this field are recognized as configured. An explicitly false flag in a newer backup is preserved.
 
 See [VALIDATION.md](VALIDATION.md) for coverage and practical limitations.

@@ -26,3 +26,10 @@ The internationalized build is checked in Chrome for English layout, live switch
 ## Practical limits
 
 Exported workbook values, types, sheets, counts, and totals are checked by reopening the output programmatically. Microsoft Excel native rendering/recalculation has not been tested; the product does not calculate formulas. No real sales sample files have been provided, so unusual source formats still need acceptance with actual data.
+
+
+## Output-template setup guard
+
+The configuration/mapping/merge regression run passed 41 backend tests (excluding the unchanged scale test), and all 8 frontend tests passed. Production build and formatting checks passed. Coverage includes the unconfigured first-run state, explicit save of the unchanged sales example, invalid drafts, preservation of imported batch/file IDs, restart persistence, legacy library recognition, and import/export of the configuration flag.
+
+Browser validation used synthetic two-file student data in an isolated application-data directory. Confirmed: Next opens the missing-template dialog; English/Chinese dialog text; cancel preserves both selected worksheets; configuration starts blank with sales placeholders; invalid drafts disable save; Save and return preserves both imported files and selections; the next click reaches source mapping. The user’s saved settings were not changed by this test.

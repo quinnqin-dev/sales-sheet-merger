@@ -18,7 +18,7 @@
   "ui.workspace": "Workspace",
   "ui.batchMerge": "Batch merge",
   "ui.sourceRules": "Source rules",
-  "ui.standardTemplate": "Standard template",
+  "ui.standardTemplate": "Output template",
   "ui.yourDataStaysOnYourComputer": "Your data stays on your computer",
   "ui.filesAreProcessedLocallyRulesAreSaved": "Files are processed locally. Rules are saved; temporary data is cleared when you exit.",
   "ui.runningLocally": "Running locally",
@@ -220,7 +220,7 @@
   "ui.newField": "New field",
   "ui.addTargetColumn": "Add target column",
   "ui.templateAndColumnNamesCannotBeEmpty": "Template and column names cannot be empty. Column names must be unique.",
-  "ui.afterSavingTheTemplateConfirmThisBatch": "After saving the template, confirm this batch’s rules again. Amounts are not calculated from quantity and unit price. Use text for order IDs and SKUs.",
+  "ui.afterSavingTheTemplateConfirmThisBatch": "After saving the output template, confirm the source mappings again. Use text for identifiers so leading zeros are preserved.",
   "invalid_columns": "Column names and IDs must be unique and non-empty.",
   "duplicate_mapping": "Each target column may only be mapped once.",
   "duplicate_rules": "Rule IDs must be unique.",
@@ -313,5 +313,14 @@
   "ui.exportExplanation": "The Excel export includes Sales Details, Problem Rows, and Processing Summary, with exact totals and row-level sources.",
   "ui.mappingColumns": "{count} target columns",
   "ui.newFieldName": "New field {count}",
-  "ui.brandSubtitle": "SALES WORKSPACE"
+  "ui.brandSubtitle": "SALES WORKSPACE",
+  "ui.outputTemplateNotConfigured": "Not configured",
+  "ui.outputTemplateRequired": "Output template not configured",
+  "ui.outputTemplateRequiredDescription": "Define the columns and types you want in the merged file before continuing. Your imported files and worksheet selections will be kept.",
+  "ui.goToOutputTemplate": "Go to output template",
+  "ui.notNow": "Not now",
+  "ui.saveAndReturn": "Save and return",
+  "ui.salesTemplateExample": "Sales template example",
+  "ui.templateExampleExplanation": "This is an example, not your current output format. Fill in your own columns below, or explicitly use this example and save it.",
+  "ui.useSalesExample": "Use sales example"
 }
