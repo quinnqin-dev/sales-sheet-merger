@@ -2239,7 +2239,6 @@ function TemplateResetDialog({
         <span className="file-icon">
           <RefreshCw size={23} />
         </span>
-        <LanguageSwitcher />
       </div>
       <h2 id="template-reset-title">{t("ui.resetTemplateTitle")}</h2>
       <p id="template-reset-description">
