@@ -25,6 +25,7 @@ import {
   type SavedTemplate,
   type TemplateDocument,
 } from "./template-files";
+import { downloadBlob } from "./local-client";
 import { OUTPUT_TEMPLATE_EXAMPLE, type Template } from "./template-state";
 
 type Props = {
@@ -67,10 +68,11 @@ export function TemplateManager(props: Props) {
       let handle;
       try {
         // The picker must run during the click, before network requests.
-        handle = await chooseTemplateFile(
-          template,
-          asNew ? "" : edited?.file_name,
-        );
+        handle =
+          typeof (window as Window & { showSaveFilePicker?: unknown })
+            .showSaveFilePicker === "function"
+            ? await chooseTemplateFile(template, asNew ? "" : edited?.file_name)
+            : undefined;
       } catch (error) {
         if (error instanceof DOMException && error.name === "AbortError")
           return;
@@ -83,16 +85,29 @@ export function TemplateManager(props: Props) {
         templateDocument(template, asNew ? undefined : edited?.id),
       );
       try {
-        await writeTemplateFile(handle, document);
+        if (handle) await writeTemplateFile(handle, document);
       } catch {
         throw new LocalizedError("templates.writeFailed");
       }
-      const record = { ...document, file_name: handle.name };
+      const record = {
+        ...document,
+        file_name:
+          handle?.name ??
+          `${template.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")}.sheet-template.json`,
+      };
       const replace = !asNew && !!edited;
-      setPending({ record, replace });
+      if (handle) setPending({ record, replace });
       try {
         await register(record, replace);
-      } catch {
+        if (!handle)
+          downloadBlob(
+            new Blob([JSON.stringify(document, null, 2) + "\n"], {
+              type: "application/json",
+            }),
+            record.file_name,
+          );
+      } catch (error) {
+        if (!handle) throw error;
         throw new LocalizedError("templates.registrationFailed");
       }
     });

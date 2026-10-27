@@ -43,6 +43,14 @@ import { UserGuide } from "./UserGuide";
 import { TemplateManager, TemplateSelector } from "./TemplateManager";
 import type { SavedTemplate } from "./template-files";
 import type { Template } from "./template-state";
+import {
+  local,
+  acquireWorkspace,
+  downloadBlob,
+  downloadResult,
+} from "./local-client";
+import { normal, signature } from "./casefold";
+import type { Workspace } from "./domain";
 
 function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
@@ -60,142 +68,20 @@ function LanguageSwitcher() {
     </label>
   );
 }
-type Mapping = {
-  target_id: string;
-  mode: "source" | "fixed" | "empty";
-  source_index: number | null;
-  fixed: string;
-  trim: boolean;
-  fill: string;
-  replacements: {
-    before: string;
-    after: string;
-  }[];
-  date_format: string;
-  number_style: string;
-};
-type Rule = {
-  id: string;
-  name: string;
-  headers: string[];
-  mappings: Mapping[];
-};
-type Library = {
-  version: 1;
-  template: Template;
-  template_configured: boolean;
-  rules: Rule[];
-  templates: SavedTemplate[];
-};
-type Sheet = {
-  name: string;
-  header_row: number;
-  headers: string[];
-  sample: {
-    row: number;
-    values: unknown[];
-  }[];
-  row_count: number;
-  blank_count: number;
-  error?: string;
-  error_code?: string;
-  error_params?: Record<string, unknown>;
-};
-type SourceFile = {
-  id: string;
-  name: string;
-  size: number;
-  encoding: string;
-  header_rows: Record<string, number>;
-  error?: string;
-  error_code?: string;
-  error_params?: Record<string, unknown>;
-  sheets: Sheet[];
-};
-type Assignment = {
-  enabled: boolean;
-  rule: Rule | null;
-  confirmed: boolean;
-};
-type ResultRow = {
-  file: string;
-  sheet: string;
-  row: number;
-  values: unknown[];
-  raw: unknown[];
-  reasons: {
-    column: string;
-    reason: string;
-    code?: string;
-    params?: Record<string, unknown>;
-  }[];
-  duplicate_group?: string;
-};
-type Summary = {
-  read: number;
-  valid: number;
-  issues: number;
-  blank: number;
-  duplicate_rows: number;
-  duplicate_extra: number;
-  duplicate_groups: number;
-  totals: Record<string, string>;
-  sources: {
-    file: string;
-    sheet: string;
-    read: number;
-    valid: number;
-    issues: number;
-    blank: number;
-  }[];
-};
-type Job = {
-  id: string;
-  status: string;
-  phase: string;
-  phase_code: string;
-  locale: "en" | "zh-CN";
-  processed: number;
-  total: number;
-  summary: Summary | null;
-  error?: string;
-  error_code?: string;
-  error_params?: Record<string, unknown>;
-  template: Template;
-};
+import type {
+  Mapping,
+  Rule,
+  Library,
+  Sheet,
+  SourceFile,
+  Assignment,
+  ResultRow,
+  Job,
+} from "./domain";
 const keyFor = (f: SourceFile, s: Sheet) => `${f.id}:${s.name}`;
 const fmt = (n: number) => n.toLocaleString(getLocale());
-const normal = (s: string) => s.normalize("NFKC").trim().toLowerCase();
-const signature = (h: string[]) => JSON.stringify(h.map(normal).sort());
+
 const show = (v: unknown) => (v === null || v === undefined ? "—" : String(v));
-async function api<T>(
-  path: string,
-  method = "GET",
-  body?: unknown,
-): Promise<T> {
-  const isForm = body instanceof FormData;
-  const res = await fetch(`/api${path}`, {
-    method,
-    headers: {
-      "Accept-Language": getLocale(),
-      ...(body !== undefined && !isForm
-        ? { "Content-Type": "application/json" }
-        : {}),
-    },
-    body: body === undefined ? undefined : isForm ? body : JSON.stringify(body),
-  });
-  if (!res.ok) {
-    let problem: Message = msg("ui.requestFailed", { p0: res.status });
-    try {
-      const result = await res.json();
-      problem = msg(result.code || "invalid_config", result.params);
-    } catch {
-      /* Keep the HTTP status if the response is not JSON. */
-    }
-    throw new LocalizedError(problem.code, problem.params);
-  }
-  return res.json();
-}
 const aliases: Record<string, string[]> = {
   date: [
     "日期",
@@ -268,8 +154,62 @@ function reconcileRule(rule: Rule, template: Template) {
     ),
   };
 }
+function BrowserDataDialog({
+  all,
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  all: boolean;
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
+}) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="template-required-dialog"
+      aria-labelledby="browser-data-title"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!busy) onCancel();
+      }}
+    >
+      <h2 id="browser-data-title">
+        {t(all ? "browser.clearAllTitle" : "browser.newBatchTitle")}
+      </h2>
+      <p>{t(all ? "browser.clearAllBody" : "browser.newBatchBody")}</p>
+      <div className="button-group">
+        <button
+          autoFocus
+          className="btn secondary"
+          disabled={busy}
+          onClick={onCancel}
+        >
+          {t("ui.cancel")}
+        </button>
+        <button className="btn primary" disabled={busy} onClick={onConfirm}>
+          {t(all ? "browser.clearAll" : "ui.newBatch")}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 function App() {
   const { t } = useI18n();
+  const [ready, setReady] = useState(false);
+  const [dataDialog, setDataDialog] = useState<"batch" | "all" | null>(null);
+  const [saveState, setSaveState] = useState<"saving" | "saved" | "failed">(
+    "saved",
+  );
   const [library, setLibrary] = useState<Library | null>(null);
   const [view, setView] = useState("merge");
   const [templatePrompt, setTemplatePrompt] = useState(false);
@@ -332,10 +272,58 @@ function App() {
     rowCount > 100000 ||
     !selections.length;
   useEffect(() => {
-    api<Library>("/config")
-      .then((lib) => setLibrary({ ...lib, templates: lib.templates ?? [] }))
+    acquireWorkspace()
+      .then(() => local("bootstrap", undefined))
+      .then(({ library, workspace }) => {
+        setLibrary(library);
+        setBatch(workspace.batch);
+        setFiles(workspace.files);
+        setAssignments(workspace.assignments);
+        setStep(workspace.step);
+        setSelectedTemplateId(workspace.selectedTemplateId);
+        setPreview(workspace.preview);
+        setJob(workspace.job);
+        if (workspace.files.length) setNotice(msg("browser.restored"));
+        setReady(true);
+        void navigator.storage?.persist?.().catch(() => {});
+      })
       .catch((e) => setError(messageFromError(e)));
   }, []);
+  useEffect(() => {
+    if (!ready) return;
+    setSaveState("saving");
+    const timer = setTimeout(() => {
+      local("saveWorkspace", snapshot())
+        .then(() => setSaveState("saved"))
+        .catch((e) => {
+          setSaveState("failed");
+          setError(messageFromError(e));
+        });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [
+    ready,
+    batch,
+    files,
+    assignments,
+    step,
+    selectedTemplateId,
+    preview,
+    job?.id,
+    job?.status,
+  ]);
+  function snapshot(): Workspace {
+    return {
+      batch,
+      files,
+      assignments,
+      step,
+      selectedTemplateId,
+      preview,
+      job,
+    };
+  }
+
   useEffect(() => {
     if (!notice) return;
     const timer = setTimeout(() => setNotice(null), 4500);
@@ -346,7 +334,7 @@ function App() {
     let stopped = false;
     const poll = async () => {
       try {
-        const next = await api<Job>(`/jobs/${job.id}`);
+        const next = await local("getJob", { id: job.id });
         if (!stopped) {
           setJob(next);
           if (next.status === "failed")
@@ -368,12 +356,7 @@ function App() {
     if (job?.status !== "done") return;
     let stopped = false;
     setLoadingRows(true);
-    api<{
-      rows: ResultRow[];
-      total: number;
-    }>(
-      `/jobs/${job.id}/rows?kind=${kind}&page=${page}&duplicates_only=${duplicatesOnly}`,
-    )
+    local("getRows", { id: job.id, kind, page, duplicates: duplicatesOnly })
       .then((r) => {
         if (!stopped) setResults(r);
       })
@@ -425,20 +408,13 @@ function App() {
     await action(msg("ui.readingFiles"), async () => {
       let id = batch;
       if (!id) {
-        id = (
-          await api<{
-            id: string;
-          }>("/batches", "POST")
-        ).id;
+        id = (await local("createBatch", undefined)).id;
         setBatch(id);
       }
-      const form = new FormData();
-      Array.from(list).forEach((f) => form.append("files", f));
-      const next = await api<SourceFile[]>(
-        `/batches/${id}/files`,
-        "POST",
-        form,
-      );
+      const next = await local("addFiles", {
+        batch: id,
+        files: Array.from(list),
+      });
       setFiles(next);
       initializeAssignments(next);
       setExpanded(
@@ -449,7 +425,7 @@ function App() {
   }
   async function removeFile(f: SourceFile) {
     await action(msg("ui.removingFile"), async () => {
-      await api(`/batches/${batch}/files/${f.id}`, "DELETE");
+      await local("removeFile", { batch, id: f.id });
       setFiles((old) => old.filter((x) => x.id !== f.id));
     });
   }
@@ -459,11 +435,12 @@ function App() {
     headerRows: Record<string, number>,
   ) {
     await action(msg("ui.inspectingFileAgain"), async () => {
-      const next = await api<SourceFile>(
-        `/batches/${batch}/files/${f.id}/inspect`,
-        "POST",
-        { encoding, header_rows: headerRows },
-      );
+      const next = await local("inspectFile", {
+        batch,
+        id: f.id,
+        encoding,
+        header_rows: headerRows,
+      });
       setFiles((old) => old.map((x) => (x.id === f.id ? next : x)));
       setAssignments((old) => {
         const update = { ...old };
@@ -500,9 +477,11 @@ function App() {
   }
   async function loadPreview() {
     await action(msg("ui.generatingPreview"), async () => {
-      const data = await api<{
-        rows: ResultRow[];
-      }>(`/batches/${batch}/preview`, "POST", payload());
+      const data = await local("preview", {
+        batch,
+        request: payload(),
+        locale: getLocale(),
+      });
       setPreview(data.rows);
       setStep(4);
     });
@@ -513,7 +492,12 @@ function App() {
       setPage(1);
       setDuplicatesOnly(false);
       setResults({ rows: [], total: 0 });
-      const next = await api<Job>(`/batches/${batch}/jobs`, "POST", payload());
+      await local("saveWorkspace", snapshot());
+      const next = await local("startJob", {
+        batch,
+        request: payload(),
+        locale: getLocale(),
+      });
       setJob(next);
       setStep(5);
     });
@@ -521,7 +505,7 @@ function App() {
   async function saveEditor(rule: Rule, saveToLibrary: boolean) {
     await action(msg("ui.savingRule"), async () => {
       if (saveToLibrary) {
-        const lib = await api<Library>("/rules", "POST", rule);
+        const lib = await local("saveRule", rule);
         setLibrary(lib);
       }
       if (editor?.key)
@@ -535,6 +519,15 @@ function App() {
           ? msg("ui.ruleSavedForTheNextImport")
           : msg("ui.mappingConfirmedForThisBatch"),
       );
+    });
+  }
+  async function clearBrowserData(all: boolean) {
+    await action(msg("browser.clearing"), async () => {
+      const result = await local("clearData", { all });
+      setLibrary(result.library);
+      reset();
+      setView("merge");
+      setDataDialog(null);
     });
   }
   function reset() {
@@ -581,21 +574,13 @@ function App() {
       return;
     }
     await action(msg("templates.applying"), async () => {
-      const next = await api<Library>(
-        "/template",
-        "PUT",
-        selectedTemplate.template,
-      );
+      const next = await local("applyTemplate", selectedTemplate.template);
       setLibrary(next);
       setStep(3);
     });
   }
   async function registerTemplate(record: SavedTemplate, replace: boolean) {
-    const next = await api<Library>(
-      replace ? `/templates/${encodeURIComponent(record.id)}` : "/templates",
-      replace ? "PUT" : "POST",
-      record,
-    );
+    const next = await local("registerTemplate", { record, replace });
     setLibrary(next);
     if (record.id === selectedTemplateId) {
       invalidateTemplate();
@@ -605,7 +590,7 @@ function App() {
   async function resetTemplate() {
     let success = false;
     await action(msg("ui.resettingOutputTemplate"), async () => {
-      setLibrary(await api<Library>("/template/reset", "POST"));
+      setLibrary(await local("resetTemplate", undefined));
       setSelectedTemplateId(null);
       invalidateTemplate();
       setStep(files.length ? 2 : 1);
@@ -615,10 +600,7 @@ function App() {
     return success;
   }
   async function deleteTemplate(id: string) {
-    const next = await api<Library>(
-      `/templates/${encodeURIComponent(id)}`,
-      "DELETE",
-    );
+    const next = await local("deleteTemplate", { id });
     setLibrary(next);
     if (id === selectedTemplateId) {
       setSelectedTemplateId(null);
@@ -641,6 +623,14 @@ function App() {
     );
   return (
     <div className="app-shell">
+      {dataDialog && (
+        <BrowserDataDialog
+          all={dataDialog === "all"}
+          busy={!!busy}
+          onCancel={() => setDataDialog(null)}
+          onConfirm={() => void clearBrowserData(dataDialog === "all")}
+        />
+      )}
       <aside className="sidebar" inert={!!editor}>
         <a
           className="brand"
@@ -706,7 +696,16 @@ function App() {
           {t("ui.userGuide")}
           <ChevronRight size={14} />
         </button>
+        <button
+          className="nav-item"
+          disabled={!!busy || running}
+          onClick={() => setDataDialog("all")}
+        >
+          <Trash2 size={17} />
+          {t("browser.clearAll")}
+        </button>
         <div className="sidebar-version">
+          <span role="status">{t(`browser.${saveState}`)}</span>
           {t("ui.sheetMergerV10")}
           <span>{t("ui.lessTimeSpentOnRepetitiveCleanup")}</span>
         </div>
@@ -768,7 +767,7 @@ function App() {
                   <button
                     className="btn subtle"
                     disabled={!!busy}
-                    onClick={reset}
+                    onClick={() => setDataDialog("batch")}
                   >
                     <Plus size={16} />
                     {t("ui.newBatch")}
@@ -1318,7 +1317,7 @@ function App() {
                       </div>
                       <span>{t("ui.keepTheToolRunningDownloadTheResult")}</span>
                     </div>
-                  ) : job.status === "failed" ? (
+                  ) : ["failed", "interrupted"].includes(job.status) ? (
                     <div className="panel processing">
                       <CircleAlert size={36} />
                       <h2>{t("ui.thisMergeCouldNotBeCompleted")}</h2>
@@ -1346,13 +1345,21 @@ function App() {
                               })}
                             </p>
                           </div>
-                          <a
+                          <button
                             className="btn primary"
-                            href={`/api/jobs/${job.id}/export`}
+                            disabled={!!busy}
+                            onClick={() =>
+                              void action(
+                                msg("browser.preparingDownload"),
+                                async () => {
+                                  await downloadResult(job.id);
+                                },
+                              )
+                            }
                           >
                             <Download size={17} />
                             {t("ui.downloadMergedExcel")}
-                          </a>
+                          </button>
                         </div>
                         <div className="result-stats">
                           {[
@@ -1490,10 +1497,20 @@ function App() {
                     <Upload size={16} />
                     {t("ui.importRuleLibrary")}
                   </button>
-                  <a className="btn secondary" href="/api/config/export">
+                  <button
+                    className="btn secondary"
+                    onClick={() =>
+                      downloadBlob(
+                        new Blob([JSON.stringify(library, null, 2)], {
+                          type: "application/json",
+                        }),
+                        "sheet-rules.json",
+                      )
+                    }
+                  >
                     <Download size={16} />
                     {t("ui.exportRuleLibrary")}
-                  </a>
+                  </button>
                 </div>
                 <input
                   type="file"
@@ -1516,9 +1533,7 @@ function App() {
                       if (file.size > 2 * 1024 * 1024)
                         throw new LocalizedError("ui.theRuleFileExceeds2Mb");
                       const data = JSON.parse(await file.text());
-                      setLibrary(
-                        await api<Library>("/config/import", "POST", data),
-                      );
+                      setLibrary(await local("importConfig", data));
                       setAssignments((old) =>
                         Object.fromEntries(
                           Object.entries(old).map(([k, a]) => [
@@ -1629,10 +1644,9 @@ function App() {
                                       msg("ui.deletingRule"),
                                       async () => {
                                         setLibrary(
-                                          await api<Library>(
-                                            `/rules/${r.id}`,
-                                            "DELETE",
-                                          ),
+                                          await local("deleteRule", {
+                                            id: r.id,
+                                          }),
                                         );
                                       },
                                     );
@@ -1662,9 +1676,7 @@ function App() {
                 goStep(2);
               }}
               perform={action}
-              validate={(document) =>
-                api("/templates/validate", "POST", document)
-              }
+              validate={(document) => local("validateTemplate", document)}
               register={registerTemplate}
               remove={deleteTemplate}
               onReset={resetTemplate}
