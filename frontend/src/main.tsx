@@ -1855,7 +1855,6 @@ function RuleEditor({
             <h2 id="rule-editor-title">{t("ui.configureFieldMapping")}</h2>
             <p>{t("ui.matchSourceColumnsToTargetColumnsOpen")}</p>
           </div>
-          <LanguageSwitcher />
           <button
             className="icon-btn"
             disabled={busy}
@@ -2189,7 +2188,6 @@ function TemplateRequiredDialog({
         <span className="file-icon">
           <Table2 size={25} />
         </span>
-        <LanguageSwitcher />
       </div>
       <h2 id="template-required-title">{t("ui.outputTemplateRequired")}</h2>
       <p id="template-required-description">

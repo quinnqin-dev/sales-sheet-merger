@@ -19,7 +19,7 @@ On a new computer, install Python 3.11+ and Node.js 20.19+ with npm, then run `.
 
 ## Language
 
-The interface starts in **English**, regardless of the browser or operating-system language. Use **English / 简体中文** in the top bar to switch; the browser remembers your choice. The mapping dialog also includes the selector, so you can change language without losing unsaved mappings. If local storage is blocked, switching still works for the current session.
+The interface starts in **English**, regardless of the browser or operating-system language. Use **English / 简体中文** in the top bar to switch; the browser remembers your choice. Dialogs follow the page language and do not include a separate language selector. If local storage is blocked, switching still works for the current session.
 
 System-generated worksheet names, issue descriptions, and summary labels use the language selected **when the merge starts**. Changing the interface while processing or before downloading does not change that job's export language. To export in another language, start a new merge in that language.
 
