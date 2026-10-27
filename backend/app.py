@@ -449,55 +449,24 @@ def append_text(ws, values, heading=False):
 def export_workbook(job, db, template):
     book = Workbook(write_only=True)
     details = book.create_sheet(text('sheet_sales'))
-    issues = book.create_sheet(text('sheet_issues'))
-    summary = book.create_sheet(text('sheet_summary'))
-    for sheet in (details, issues, summary):
-        sheet.freeze_panes = 'A2'
-        for index in range(1, min(30, len(template.columns) + 6) + 1):
-            sheet.column_dimensions[get_column_letter(index)].width = 20
+    details.freeze_panes = 'A2'
+    for index in range(1, len(template.columns) + 1):
+        details.column_dimensions[get_column_letter(index)].width = 20
     append_text(details, [c.name for c in template.columns], True)
-    max_raw = db.execute('SELECT COALESCE(MAX(LENGTH(raw)),0) FROM rows WHERE kind="issues"').fetchone()[0]
-    raw_parts = max(1, (max_raw + 29999) // 30000)
-    raw_headers = [text('raw_json')] if raw_parts == 1 else [text('raw_part', {'index': i+1}) for i in range(raw_parts)]
-    append_text(issues, [text('file'), text('sheet'), text('original_row'), text('issue_reason')] + raw_headers + [c.name for c in template.columns], True)
-    cursor = db.execute('SELECT * FROM rows ORDER BY id')
-    for row in cursor:
-        values = json.loads(row['data'])
-        if row['kind'] == 'issues':
-            reasons = json.loads(row['reasons'])
-            parts = [row['raw'][i * 30000:(i + 1) * 30000] for i in range(raw_parts)]
-            append_text(issues, [row['file'], row['sheet'], row['original_row'],
-                                ('; ' if LOCALE.get() == 'en' else '；').join(f'{r["column"]}: {text(r["code"], r.get("params"))}' for r in reasons)] + parts + values)
-        else:
-            cells = []
-            for value, col in zip(values, template.columns):
-                if value is not None and col.type == 'number':
-                    cell = WriteOnlyCell(details, Decimal(value))
-                    cell.number_format = '#,##0.############'
-                elif value is not None and col.type == 'date':
-                    cell = WriteOnlyCell(details, date.fromisoformat(value))
-                    cell.number_format = 'yyyy-mm-dd'
-                else:
-                    cell = text_cell(details, value)
-                cells.append(cell)
-            details.append(cells)
+    for row in db.execute('SELECT data FROM rows WHERE kind="valid" ORDER BY id'):
+        cells = []
+        for value, col in zip(json.loads(row['data']), template.columns):
+            if value is not None and col.type == 'number':
+                cell = WriteOnlyCell(details, Decimal(value))
+                cell.number_format = '#,##0.############'
+            elif value is not None and col.type == 'date':
+                cell = WriteOnlyCell(details, date.fromisoformat(value))
+                cell.number_format = 'yyyy-mm-dd'
+            else:
+                cell = text_cell(details, value)
+            cells.append(cell)
+        details.append(cells)
     details.auto_filter.ref = f'A1:{get_column_letter(len(template.columns))}{job["summary"]["valid"] + 1}'
-    append_text(summary, [text('metric'), text('result')], True)
-    labels = [('read', text('read_rows')), ('valid', text('valid_rows')), ('issues', text('sheet_issues')), ('blank', text('blank_rows')),
-              ('duplicate_rows', text('duplicate_rows')), ('duplicate_extra', text('duplicate_extra'))]
-    for key, label in labels:
-        append_text(summary, [label, job['summary'][key]])
-    for col in template.columns:
-        if col.type == 'number':
-            append_text(summary, [text('exact_total', {'column': col.name}), job['summary']['totals'][col.id]])
-    append_text(summary, [])
-    append_text(summary, [text('file'), text('sheet'), text('read_rows'), text('valid_rows'), text('sheet_issues'), text('blank_rows')], True)
-    for source in job['summary']['sources']:
-        append_text(summary, [source[k] for k in ('file', 'sheet', 'read', 'valid', 'issues', 'blank')])
-    append_text(summary, [])
-    append_text(summary, [text('export_row'), text('file'), text('sheet'), text('original_row'), text('duplicate_group')], True)
-    for index, row in enumerate(db.execute('SELECT r.*,d.count AS duplicate_count FROM rows r LEFT JOIN duplicates d ON r.fingerprint=d.fingerprint WHERE kind="valid" ORDER BY r.id'), 2):
-        append_text(summary, [index, row['file'], row['sheet'], row['original_row'], row['fingerprint'][:12] if row['duplicate_count'] > 1 else ''])
     book.save(job['output'])
 
 

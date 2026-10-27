@@ -54,8 +54,8 @@ def test_stored_file_errors_retranslate_without_reimport(client):
     assert client.get(f'/api/batches/{batch}').json()['files'][0]['sheets'][0]['error'].startswith('Headers contain')
 
 
-@pytest.mark.parametrize('locale,sheets', [('en',['Sales Details','Problem Rows','Processing Summary']),
-                                         ('zh-CN',['销售明细','问题行','处理汇总'])])
+@pytest.mark.parametrize('locale,sheets', [('en',['Sales Details']),
+                                         ('zh-CN',['销售明细'])])
 def test_export_language_snapshot_and_business_values(client,locale,sheets):
     headers=['日期','订单号','收入']
     batch,files=upload(client,[('客户原始.csv',csv_bytes(headers,[['2026-10-27','000123','1.10'],['invalid','000124','2']]))])
@@ -79,10 +79,9 @@ def test_export_language_snapshot_and_business_values(client,locale,sheets):
     assert book.sheetnames==sheets
     assert book[sheets[0]]['B1'].value=='客户订单编号'
     assert book[sheets[0]]['B2'].value=='000123'
-    problem=list(book[sheets[1]].values)[1]
-    assert problem[0]=='客户原始.csv'
-    assert ('Date does not match' in problem[3]) == (locale=='en')
-    assert book[sheets[1]]['A1'].value==('File' if locale=='en' else '文件')
+    assert book[sheets[0]].max_row == 2
+    assert issues['rows'][0]['file'] == '客户原始.csv'
+    assert issues['rows'][0]['raw'][0] == 'invalid'
     book.close()
 
 

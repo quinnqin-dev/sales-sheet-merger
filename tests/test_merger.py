@@ -118,12 +118,12 @@ def test_three_sources_preview_export_and_reuse(client):
     assert issue['row'] == 4 and issue['raw'][0] == 'bad-date'
     result = client.get(f'/api/jobs/{job["id"]}/export')
     book = load_workbook(io.BytesIO(result.content), data_only=False)
-    assert book.sheetnames == ['Sales Details', 'Problem Rows', 'Processing Summary']
+    assert book.sheetnames == ['Sales Details']
     details = book['Sales Details']
     assert details['B2'].value == '000123' and details['B2'].data_type == 's'
     assert details['D2'].value == '=literal' and details['D2'].data_type == 's'
     assert details['A2'].is_date and details['G2'].data_type == 'n'
-    assert details.max_row == 5 and book['Problem Rows'].max_row == 2
+    assert details.max_row == 5
     book.close()
     saved = client.post('/api/rules', json=rules[0].model_dump())
     assert saved.status_code == 200
@@ -233,7 +233,7 @@ def test_total_limit_without_partial_export(client):
     assert response.status_code == 400 and response.json()['code'] == 'total_row_limit'
 
 
-def test_long_problem_raw_values_are_preserved_in_excel(client):
+def test_long_problem_values_stay_available_in_page_results_not_excel(client):
     headers = ['日期','金额','备注']
     long_text = '长' * 40000
     batch, files = upload(client, [('long.csv',csv_bytes(headers,[['bad',1,long_text]]))])
@@ -241,10 +241,11 @@ def test_long_problem_raw_values_are_preserved_in_excel(client):
     job = run(client,batch,request_for(files,[rule]))
     assert job['summary']['issues'] == 1 and job['summary']['valid'] == 0
     book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content),data_only=True)
-    row = list(book['Problem Rows'].values)[1]
-    restored = json.loads(row[4] + row[5])
-    assert restored == ['bad','1',long_text]
-    assert '32767' in row[3]
+    assert book.sheetnames == ['Sales Details']
+    assert book['Sales Details'].max_row == 1
+    problem = client.get(f'/api/jobs/{job["id"]}/rows?kind=issues').json()['rows'][0]
+    assert problem['raw'] == ['bad','1',long_text]
+    assert any(reason['code'] == 'text_length' for reason in problem['reasons'])
     book.close()
 
 
@@ -293,6 +294,7 @@ def test_thirty_files_one_hundred_thousand_rows(client):
     page = client.get(f'/api/jobs/{job["id"]}/rows?page=2000').json()
     assert len(page['rows']) == 50 and page['rows'][-1]['values'][1] == '00099999'
     book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content),read_only=True,data_only=True)
+    assert book.sheetnames == ['Sales Details']
     count = 0
     total = Decimal(0)
     for row in book['Sales Details'].iter_rows(min_row=2,values_only=True):

@@ -41,3 +41,8 @@ Browser validation used synthetic two-file student data in an isolated applicati
 
 
 Browser verification of the manual/reset flow confirmed empty actual input values, Chinese “例：” placeholders, computed gray placeholder color, disabled save before manual entry, successful manual save, reset cancellation preserving the saved template, and confirmed reset restoring a blank unconfigured form. The reset confirmation uses an in-page modal.
+
+
+## Single-sheet export
+
+The default Excel download now contains only the merged valid-data worksheet. Problem rows and Processing Summary are no longer exported as worksheets. The page/API still retain problem reasons, raw source values, counts, and duplicate flags for the current session. Export tests cover mixed valid/error rows, an all-error batch (header-only output), both worksheet languages, preserved numeric/date/text types, and the 100,000-row export.

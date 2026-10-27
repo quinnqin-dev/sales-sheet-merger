@@ -40,12 +40,12 @@ The **Output template** page edits column names, order, types, and required stat
 
 - Cleanup order: trim whitespace → fill empty values → replace exact whole-cell values (first match) → convert types. No scripts or formula editor.
 - Dates use the format explicitly selected in the rule; native Excel dates are read directly. Day/month order is not guessed. Number styles support `1,234.56`, `1234.56`, and `1.234,56`. Language switching does not change these parsing settings.
-- Amounts use Decimal arithmetic. No automatic quantity-times-price calculation, currency conversion, or unit rescaling. Numeric values support up to 15 significant digits, 12 decimal places, and absolute value 10¹⁵; excess precision is isolated instead of silently rounded. Exact totals are written as text in Processing Summary.
+- Amounts use Decimal arithmetic. No automatic quantity-times-price calculation, currency conversion, or unit rescaling. Numeric values support up to 15 significant digits, 12 decimal places, and absolute value 10¹⁵; excess precision is isolated instead of silently rounded. Exact totals remain available in the processing result data.
 - Order IDs and SKUs remain text. Existing text leading zeros and simple `000000` display formats are preserved; digits already lost in a source file cannot be reconstructed.
 - Entirely blank rows are skipped and counted separately. Required-value and conversion errors are isolated with the source values and reasons. Unreadable files must be removed or fixed before proceeding. Valid rows + problem rows = data rows read.
 - Exact duplicate detection compares all converted target fields; numeric `1.0` and `1.00` are equivalent. Duplicate rows are retained and grouped. Matching order IDs alone do not imply duplicates.
 - Formulas use saved calculation caches only; no formulas are executed or recalculated. Missing caches in mapped cells become issues. Exported text cannot become an Excel formula. Excessive text length and unsupported control characters are isolated.
-- Export sheets: **Sales Details** (exact template columns), **Problem Rows** (source, reason, original JSON, and converted values), **Processing Summary** (source counts, exact totals, row provenance, and duplicate groups). Chinese jobs use translated sheet names. Long original JSON is split across consecutive columns without truncation. Source files are never overwritten.
+- Excel export contains **one worksheet only: Sales Details** (销售明细 for Chinese jobs), with valid merged records in exact template-column order. Problem rows, reasons, source information, counts, and duplicate warnings remain available on the results page while the session is running. They are not included as extra worksheets. Source files are never overwritten.
 
 ## Data and limits
 
