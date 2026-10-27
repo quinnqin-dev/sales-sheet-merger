@@ -321,6 +321,12 @@
   "ui.notNow": "暂不填写",
   "ui.saveAndReturn": "保存并返回",
   "ui.salesTemplateExample": "销售模板示例",
-  "ui.templateExampleExplanation": "以下仅为示例，不代表当前输出格式。请填写自己的列，或明确使用此示例并保存。",
-  "ui.useSalesExample": "使用销售示例"
+  "ui.templateExampleExplanation": "灰色内容仅为占位示例，不是实际输入。请自行填写模板名称和目标列名后保存。",
+  "ui.exampleValue": "例：{value}",
+  "ui.resetOutputTemplate": "重置模板",
+  "ui.confirmOutputTemplateReset": "确定重置输出模板？当前模板配置和未保存的编辑将清空，已导入文件和已保存的来源规则会保留。",
+  "ui.resettingOutputTemplate": "正在重置输出模板…",
+  "ui.outputTemplateReset": "输出模板已重置，请自行填写后再继续。",
+  "ui.resetTemplateTitle": "重置输出模板？",
+  "ui.confirmResetTemplate": "确认重置"
 }

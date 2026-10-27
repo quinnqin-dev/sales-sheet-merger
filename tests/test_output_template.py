@@ -48,7 +48,7 @@ def test_configured_state_survives_restart_and_json_export(tmp_path,monkeypatch)
         assert session.post('/api/config/import',json=backup).json()==backup
 
 
-def test_legacy_saved_template_is_configured_without_rewriting_user_content(tmp_path,monkeypatch):
+def test_legacy_template_requires_manual_configuration_without_rewriting_user_content(tmp_path,monkeypatch):
     monkeypatch.setattr(service,'DATA_DIR',tmp_path/'legacy')
     service.DATA_DIR.mkdir()
     legacy={'version':1,'template':{'name':'我的成绩格式','columns':[
@@ -57,13 +57,41 @@ def test_legacy_saved_template_is_configured_without_rewriting_user_content(tmp_
     (service.DATA_DIR/'library.json').write_text(raw,encoding='utf-8')
     with TestClient(service.app) as session:
         loaded=session.get('/api/config').json()
-        assert loaded['template_configured'] is True
+        assert loaded['template_configured'] is False
         assert loaded['template']==legacy['template']
         assert (service.DATA_DIR/'library.json').read_text('utf-8')==raw
 
 
-def test_legacy_import_is_configured_but_explicit_false_is_preserved(client):
+def test_legacy_import_requires_configuration_and_explicit_choice_is_preserved(client):
     legacy={'version':1,'template':DEFAULT_TEMPLATE.model_dump(),'rules':[]}
-    assert client.post('/api/config/import',json=legacy).json()['template_configured'] is True
+    assert client.post('/api/config/import',json=legacy).json()['template_configured'] is False
+    configured={**legacy,'template_configured':True}
+    assert client.post('/api/config/import',json=configured).json()['template_configured'] is True
     unconfigured={**legacy,'template_configured':False}
     assert client.post('/api/config/import',json=unconfigured).json()['template_configured'] is False
+
+
+def test_reset_preserves_rules_files_and_persists_unconfigured_state(client):
+    from test_merger import make_rule
+    rule=make_rule(['日期','金额'],{'date':'日期','amount':'金额'})
+    assert client.post('/api/rules',json=rule.model_dump()).status_code==200
+    student={'name':'Student Grades','columns':[{'id':'student','name':'Student ID','type':'text'}]}
+    assert client.put('/api/template',json=student).json()['template_configured'] is True
+    batch,files=upload(client,[('students.csv',csv_bytes(['学号','成绩'],[['S00001',86]]))])
+    rules=client.get('/api/config').json()['rules']
+    for _ in range(2):
+        reset=client.post('/api/template/reset').json()
+        assert reset['template_configured'] is False
+        assert reset['rules']==rules
+        assert client.get(f'/api/batches/{batch}').json()['files']==files
+        assert client.get('/api/config').json()['template_configured'] is False
+        assert client.get('/api/config/export').json()['template_configured'] is False
+
+
+def test_reset_survives_restart(tmp_path,monkeypatch):
+    monkeypatch.setattr(service,'DATA_DIR',tmp_path/'reset-state')
+    with TestClient(service.app) as session:
+        session.put('/api/template',json=DEFAULT_TEMPLATE.model_dump())
+        session.post('/api/template/reset')
+    with TestClient(service.app) as session:
+        assert session.get('/api/config').json()['template_configured'] is False

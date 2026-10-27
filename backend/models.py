@@ -59,8 +59,8 @@ class Rule(BaseModel):
 class Library(BaseModel):
     version: Literal[1] = 1
     template: Template
-    # Version-1 libraries without this field already contain a saved template.
-    template_configured: bool = True
+    # A legacy/default template is not evidence of explicit user configuration.
+    template_configured: bool = False
     rules: list[Rule] = Field(default_factory=list, max_length=500)
 
     @model_validator(mode='after')

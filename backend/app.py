@@ -196,6 +196,16 @@ def put_template(template: Template):
     return lib
 
 
+@app.post('/api/template/reset')
+def reset_template():
+    with STATE_LOCK:
+        lib = load_library()
+        lib.template = DEFAULT_TEMPLATE.model_copy(deep=True)
+        lib.template_configured = False
+        save_library(lib)
+    return lib
+
+
 @app.post('/api/rules')
 def put_rule(rule: Rule):
     with STATE_LOCK:

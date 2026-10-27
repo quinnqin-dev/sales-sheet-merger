@@ -45,6 +45,7 @@ import {
 import "./style.css";
 import {
   initialTemplateDraft,
+  SALES_TEMPLATE_EXAMPLE,
   validTemplateDraft,
   type Column,
   type Template,
@@ -1568,6 +1569,26 @@ function App() {
                 setStep(1);
               }}
               busy={!!busy}
+              onReset={async () => {
+                let success = false;
+                await action(msg("ui.resettingOutputTemplate"), async () => {
+                  setLibrary(await api<Library>("/template/reset", "POST"));
+                  setAssignments((old) =>
+                    Object.fromEntries(
+                      Object.entries(old).map(([k, a]) => [
+                        k,
+                        { ...a, rule: null, confirmed: false },
+                      ]),
+                    ),
+                  );
+                  setStep(1);
+                  setPreview([]);
+                  setJob(null);
+                  setNotice(msg("ui.outputTemplateReset"));
+                  success = true;
+                });
+                return success;
+              }}
               onSave={async (updatedTemplate) => {
                 await action(msg("ui.savingTemplate"), async () => {
                   setLibrary(
@@ -2187,12 +2208,66 @@ function TemplateRequiredDialog({
   );
 }
 
+function TemplateResetDialog({
+  busy,
+  onCancel,
+  onConfirm,
+}: {
+  busy: boolean;
+  onCancel: () => void;
+  onConfirm: () => Promise<void>;
+}) {
+  const { t } = useI18n();
+  const ref = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const dialog = ref.current!;
+    dialog.showModal();
+    return () => dialog.close();
+  }, []);
+  return (
+    <dialog
+      ref={ref}
+      className="template-required-dialog"
+      aria-labelledby="template-reset-title"
+      aria-describedby="template-reset-description"
+      onCancel={(e) => {
+        e.preventDefault();
+        if (!busy) onCancel();
+      }}
+    >
+      <div className="template-required-heading">
+        <span className="file-icon">
+          <RefreshCw size={23} />
+        </span>
+        <LanguageSwitcher />
+      </div>
+      <h2 id="template-reset-title">{t("ui.resetTemplateTitle")}</h2>
+      <p id="template-reset-description">
+        {t("ui.confirmOutputTemplateReset")}
+      </p>
+      <div className="button-group">
+        <button className="btn secondary" disabled={busy} onClick={onCancel}>
+          {t("ui.cancel")}
+        </button>
+        <button
+          className="btn primary"
+          disabled={busy}
+          onClick={() => void onConfirm()}
+        >
+          {t(busy ? "ui.resettingOutputTemplate" : "ui.confirmResetTemplate")}
+        </button>
+      </div>
+    </dialog>
+  );
+}
+
 function TemplateEditor({
   template,
   configured,
   returnToBatch,
   onReturn,
   busy,
+  onReset,
   onSave,
 }: {
   template: Template;
@@ -2200,9 +2275,11 @@ function TemplateEditor({
   returnToBatch: boolean;
   onReturn: () => void;
   busy: boolean;
+  onReset: () => Promise<boolean>;
   onSave: (t: Template) => Promise<void>;
 }) {
   const { t } = useI18n();
+  const [confirmReset, setConfirmReset] = useState(false);
   const [draft, setDraft] = useState(() =>
     initialTemplateDraft(template, configured),
   );
@@ -2236,6 +2313,14 @@ function TemplateEditor({
             </button>
           )}
           <button
+            className="btn secondary"
+            disabled={busy}
+            onClick={() => setConfirmReset(true)}
+          >
+            <RefreshCw size={16} />
+            {t("ui.resetOutputTemplate")}
+          </button>
+          <button
             className="btn primary"
             disabled={busy || (configured && !dirty) || !valid}
             onClick={() =>
@@ -2261,18 +2346,13 @@ function TemplateEditor({
               <h2>{t("ui.salesTemplateExample")}</h2>
               <p>{t("ui.templateExampleExplanation")}</p>
             </div>
-            <button
-              className="btn secondary"
-              disabled={busy}
-              onClick={() => setDraft(structuredClone(template))}
-            >
-              {t("ui.useSalesExample")}
-            </button>
           </div>
-          <strong>Standard Sales Details</strong>
+          <strong>
+            {t("ui.exampleValue", { value: SALES_TEMPLATE_EXAMPLE.name })}
+          </strong>
           <div className="example-columns">
-            {template.columns.map((c) => (
-              <span key={c.id}>{c.name}</span>
+            {SALES_TEMPLATE_EXAMPLE.columns.map((c) => (
+              <span key={c.id}>{t("ui.exampleValue", { value: c.name })}</span>
             ))}
           </div>
         </div>
@@ -2282,7 +2362,9 @@ function TemplateEditor({
           {t("ui.templateName")}
           <input
             value={draft.name}
-            placeholder="Standard Sales Details"
+            placeholder={t("ui.exampleValue", {
+              value: SALES_TEMPLATE_EXAMPLE.name,
+            })}
             maxLength={80}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
           />
@@ -2307,9 +2389,11 @@ function TemplateEditor({
                   <input
                     aria-label={t("ui.columnName", { p0: i + 1 })}
                     value={c.name}
-                    placeholder={
-                      template.columns[i]?.name || t("ui.targetColumnName")
-                    }
+                    placeholder={t("ui.exampleValue", {
+                      value:
+                        SALES_TEMPLATE_EXAMPLE.columns[i]?.name ||
+                        t("ui.targetColumnName"),
+                    })}
                     maxLength={80}
                     onChange={(e) => patch(c.id, { name: e.target.value })}
                   />
@@ -2418,6 +2502,17 @@ function TemplateEditor({
         <CircleAlert size={16} />
         <p>{t("ui.afterSavingTheTemplateConfirmThisBatch")}</p>
       </div>
+      {confirmReset && (
+        <TemplateResetDialog
+          busy={busy}
+          onCancel={() => setConfirmReset(false)}
+          onConfirm={async () => {
+            if (await onReset())
+              setDraft(initialTemplateDraft(SALES_TEMPLATE_EXAMPLE, false));
+            setConfirmReset(false);
+          }}
+        />
+      )}
     </>
   );
 }

@@ -1899,3 +1899,24 @@ td {
     padding: 22px;
   }
 }
+
+.template-panel input::placeholder {
+  color: #9ca39e;
+  opacity: 1;
+}
+.template-example h2,
+.template-example p,
+.template-example > strong {
+  color: #909993;
+}
+.template-example .example-columns > span {
+  background: #f2f4f0;
+  color: #909993;
+  border-color: #e5e8e3;
+}
+.template-panel .template-name-label input:placeholder-shown {
+  color: #9ca39e;
+}
+.template-panel input:not(:placeholder-shown) {
+  color: #30463b;
+}

@@ -321,6 +321,12 @@
   "ui.notNow": "Not now",
   "ui.saveAndReturn": "Save and return",
   "ui.salesTemplateExample": "Sales template example",
-  "ui.templateExampleExplanation": "This is an example, not your current output format. Fill in your own columns below, or explicitly use this example and save it.",
-  "ui.useSalesExample": "Use sales example"
+  "ui.templateExampleExplanation": "Gray examples are placeholders only. Enter the template name and target column names yourself before saving.",
+  "ui.exampleValue": "e.g. {value}",
+  "ui.resetOutputTemplate": "Reset template",
+  "ui.confirmOutputTemplateReset": "Reset the output template? Its current configuration and unsaved edits will be cleared. Imported files and saved source rules will be kept.",
+  "ui.resettingOutputTemplate": "Resetting output template…",
+  "ui.outputTemplateReset": "Output template reset. Fill in your own template before continuing.",
+  "ui.resetTemplateTitle": "Reset output template?",
+  "ui.confirmResetTemplate": "Reset now"
 }
