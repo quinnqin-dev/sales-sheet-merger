@@ -426,11 +426,7 @@ export function TemplateSelector({
           <ArrowLeft size={16} />
           {t("ui.backToImport")}
         </button>
-        <button
-          className="btn primary"
-          disabled={busy || !selected}
-          onClick={onConfirm}
-        >
+        <button className="btn primary" disabled={busy} onClick={onConfirm}>
           {t("templates.confirmNext")}
           <ArrowRight size={16} />
         </button>

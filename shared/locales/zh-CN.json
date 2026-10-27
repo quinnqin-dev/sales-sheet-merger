@@ -341,7 +341,7 @@
   "guide.import.alt": "已导入两份学生成绩表，勾选两个工作表，共 24 条待合并记录。",
   "guide.import.caption": "① 导入两份表，确认需要合并的工作表。",
   "guide.template.title": "选择并确认输出模板",
-  "guide.template.body": "从模板库选择一份模板并检查列配置。每个新批次都需要手选；未配置提示可以关闭后选择，也可以前往“输出模板”新建。",
+  "guide.template.body": "从模板库选择一份模板并检查列配置。每个新批次都需要手选；只有未选择模板就点“下一步”时，才会显示未配置提示。",
   "guide.template.tip": "本例选择 Student grades 模板，包含 Student ID、Name、Subject 和数字类型的 Score，再点“确认模板，下一步”。",
   "guide.template.alt": "确认模板步骤中，选择模板库里的 Student grades，并展示四个输出列及其类型。",
   "guide.template.caption": "② 为本批次选择模板，确认输出列。",

@@ -563,9 +563,8 @@ function App() {
     setResults({ rows: [], total: 0 });
   }
   function goStep(next: number) {
-    if (next >= 2 && !selectedTemplate) {
+    if (next >= 3 && !selectedTemplate) {
       setStep(2);
-      setTemplatePrompt(true);
       return;
     }
     setStep(next);
@@ -577,7 +576,10 @@ function App() {
     setError(null);
   }
   async function confirmTemplate() {
-    if (!selectedTemplate) return;
+    if (!selectedTemplate) {
+      setTemplatePrompt(true);
+      return;
+    }
     await action(msg("templates.applying"), async () => {
       const next = await api<Library>(
         "/template",
@@ -657,8 +659,6 @@ function App() {
               disabled={!!busy || running}
               onClick={() => {
                 setView(item.id);
-                if (item.id === "merge" && step === 2 && !selectedTemplate)
-                  setTemplatePrompt(true);
                 setTemplateEditId(null);
                 setReturnFromTemplate(false);
                 setError(null);
@@ -1671,7 +1671,6 @@ function App() {
             <UserGuide
               onReturn={() => {
                 setView("merge");
-                if (step === 2 && !selectedTemplate) setTemplatePrompt(true);
               }}
             />
           )}

@@ -341,7 +341,7 @@
   "guide.import.alt": "Two student-grade files imported, with 24 rows and two worksheets selected.",
   "guide.import.caption": "1. Import both files and check the selected worksheets.",
   "guide.template.title": "Select and confirm a template",
-  "guide.template.body": "Choose a saved template and review its columns. Each new batch starts without a selection. Dismiss the missing-template prompt to choose, or go to Output template to create one.",
+  "guide.template.body": "Choose a saved template and review its columns. Each new batch starts without a selection. The missing-template prompt appears only if you click Next without selecting one.",
   "guide.template.tip": "For this example, select Student grades with Student ID, Name, Subject, and numeric Score. Click Confirm template, next.",
   "guide.template.alt": "Confirm template step showing a saved Student grades template and its four output columns.",
   "guide.template.caption": "2. Select a saved template for this batch and confirm the output columns.",
