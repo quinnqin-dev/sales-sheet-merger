@@ -151,3 +151,7 @@ The template-file format identifiers are retained for compatibility with earlier
 ## Source code
 
 This public repository is for contributors and reviewers. End users should use the [online app](https://sheet-merger-80c7.onrender.com/) rather than setting up the project locally. Architecture, local setup, Render deployment, and test commands are documented in [DEVELOPMENT.md](DEVELOPMENT.md).
+
+## License
+
+Released under the [MIT License](LICENSE). Copyright © 2026 Quinn Qin.

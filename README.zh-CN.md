@@ -151,3 +151,7 @@
 ## 源代码
 
 本仓库面向贡献者和代码审阅者。普通用户请直接使用[在线应用](https://sheet-merger-80c7.onrender.com/)，无需在本地安装项目。架构、本地开发、Render 部署和测试命令见 [DEVELOPMENT.md](DEVELOPMENT.md)。
+
+## 许可证
+
+本项目使用 [MIT License](LICENSE) 开源。Copyright © 2026 Quinn Qin。

@@ -61,3 +61,7 @@ When changing the retained Python backend, also run:
 ```
 
 Shared English and Chinese messages live in `shared/locales/`. Keep message keys and interpolation placeholders consistent between both catalogs. See `VALIDATION.md` for test coverage and practical limitations.
+
+## License
+
+This project is released under the MIT License. See `LICENSE` for the full text.
