@@ -13,7 +13,7 @@ class Column(BaseModel):
 
 
 class Template(BaseModel):
-    name: str = Field(default='Standard Sales Details', min_length=1, max_length=80)
+    name: str = Field(default='Output Template', min_length=1, max_length=80)
     columns: list[Column] = Field(min_length=1, max_length=100)
 
     @model_validator(mode='after')
@@ -129,6 +129,6 @@ DEFAULT_TEMPLATE = Template(columns=[
     Column(id='product', name='Product'),
     Column(id='quantity', name='Quantity', type='number'),
     Column(id='price', name='Unit Price', type='number'),
-    Column(id='amount', name='Sales Amount', type='number', required=True),
+    Column(id='amount', name='Amount', type='number', required=True),
     Column(id='channel', name='Channel'),
 ])

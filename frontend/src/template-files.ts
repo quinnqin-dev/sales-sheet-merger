@@ -44,7 +44,7 @@ export function chooseTemplateFile(
     id: "sales-output-template",
     suggestedName:
       fileName ||
-      `${template.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")}.sales-template.json`,
+      `${template.name.replace(/[<>:"/\\|?*\x00-\x1f]/g, "_")}.sheet-template.json`,
     types: [
       {
         description: "Output template (JSON)",

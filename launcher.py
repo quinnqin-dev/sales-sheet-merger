@@ -31,7 +31,7 @@ def main():
             if process.poll() is not None:
                 raise SystemExit('Startup failed. Check whether port 8765 is in use or another instance is running.')
             if is_running():
-                print('Sales Sheet Merger is running: ' + URL + '\nKeep this window open. Press Control-C to exit and clear temporary data.')
+                print('Sheet Merger is running: ' + URL + '\nKeep this window open. Press Control-C to exit and clear temporary data.')
                 webbrowser.open(URL)
                 break
             time.sleep(0.1)

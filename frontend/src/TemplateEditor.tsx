@@ -12,7 +12,7 @@ import {
 import { useI18n } from "./i18n";
 import {
   initialTemplateDraft,
-  SALES_TEMPLATE_EXAMPLE,
+  OUTPUT_TEMPLATE_EXAMPLE,
   validTemplateDraft,
   type Template,
   type Column,
@@ -173,15 +173,15 @@ export function TemplateEditor({
         <div className="panel template-example">
           <div className="section-heading">
             <div>
-              <h2>{t("ui.salesTemplateExample")}</h2>
+              <h2>{t("ui.outputTemplateExample")}</h2>
               <p>{t("ui.templateExampleExplanation")}</p>
             </div>
           </div>
           <strong>
-            {t("ui.exampleValue", { value: SALES_TEMPLATE_EXAMPLE.name })}
+            {t("ui.exampleValue", { value: OUTPUT_TEMPLATE_EXAMPLE.name })}
           </strong>
           <div className="example-columns">
-            {SALES_TEMPLATE_EXAMPLE.columns.map((c) => (
+            {OUTPUT_TEMPLATE_EXAMPLE.columns.map((c) => (
               <span key={c.id}>{t("ui.exampleValue", { value: c.name })}</span>
             ))}
           </div>
@@ -193,7 +193,7 @@ export function TemplateEditor({
           <input
             value={draft.name}
             placeholder={t("ui.exampleValue", {
-              value: SALES_TEMPLATE_EXAMPLE.name,
+              value: OUTPUT_TEMPLATE_EXAMPLE.name,
             })}
             maxLength={80}
             onChange={(e) => setDraft({ ...draft, name: e.target.value })}
@@ -221,7 +221,7 @@ export function TemplateEditor({
                     value={c.name}
                     placeholder={t("ui.exampleValue", {
                       value:
-                        SALES_TEMPLATE_EXAMPLE.columns[i]?.name ||
+                        OUTPUT_TEMPLATE_EXAMPLE.columns[i]?.name ||
                         t("ui.targetColumnName"),
                     })}
                     maxLength={80}
@@ -338,7 +338,7 @@ export function TemplateEditor({
           onCancel={() => setConfirmReset(false)}
           onConfirm={async () => {
             if (await onReset()) {
-              setDraft(initialTemplateDraft(SALES_TEMPLATE_EXAMPLE, false));
+              setDraft(initialTemplateDraft(OUTPUT_TEMPLATE_EXAMPLE, false));
               setShowExample(true);
             }
             setConfirmReset(false);

@@ -54,8 +54,8 @@ def test_stored_file_errors_retranslate_without_reimport(client):
     assert client.get(f'/api/batches/{batch}').json()['files'][0]['sheets'][0]['error'].startswith('Headers contain')
 
 
-@pytest.mark.parametrize('locale,sheets', [('en',['Sales Details']),
-                                         ('zh-CN',['销售明细'])])
+@pytest.mark.parametrize('locale,sheets', [('en',['Merged Data']),
+                                         ('zh-CN',['合并明细'])])
 def test_export_language_snapshot_and_business_values(client,locale,sheets):
     headers=['日期','订单号','收入']
     batch,files=upload(client,[('客户原始.csv',csv_bytes(headers,[['2026-10-27','000123','1.10'],['invalid','000124','2']]))])

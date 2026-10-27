@@ -7,17 +7,13 @@ export type Column = {
 export type Template = { name: string; columns: Column[] };
 
 // Display-only examples. New drafts never copy these values into input fields.
-export const SALES_TEMPLATE_EXAMPLE: Template = {
-  name: "Standard Sales Details",
+export const OUTPUT_TEMPLATE_EXAMPLE: Template = {
+  name: "Output Template",
   columns: [
-    { id: "date", name: "Date", type: "date", required: true },
-    { id: "order_id", name: "Order ID", type: "text", required: false },
-    { id: "sku", name: "SKU", type: "text", required: false },
-    { id: "product", name: "Product", type: "text", required: false },
-    { id: "quantity", name: "Quantity", type: "number", required: false },
-    { id: "price", name: "Unit Price", type: "number", required: false },
-    { id: "amount", name: "Sales Amount", type: "number", required: true },
-    { id: "channel", name: "Channel", type: "text", required: false },
+    { id: "record_id", name: "Record ID", type: "text", required: false },
+    { id: "name", name: "Name", type: "text", required: false },
+    { id: "date", name: "Date", type: "date", required: false },
+    { id: "value", name: "Value", type: "number", required: false },
   ],
 };
 

@@ -93,7 +93,7 @@ async def lifespan(app):
         handle.close()
 
 
-app = FastAPI(title='Sales Sheet Merger', lifespan=lifespan)
+app = FastAPI(title='Sheet Merger', lifespan=lifespan)
 
 
 @app.middleware('http')
@@ -277,7 +277,7 @@ def delete_rule(rule_id: str):
 
 @app.get('/api/config/export')
 def export_config():
-    return JSONResponse(load_library().model_dump(), headers={'Content-Disposition': 'attachment; filename="sales-rules.json"'})
+    return JSONResponse(load_library().model_dump(), headers={'Content-Disposition': 'attachment; filename="sheet-rules.json"'})
 
 
 @app.post('/api/config/import')
@@ -496,7 +496,7 @@ def append_text(ws, values, heading=False):
 
 def export_workbook(job, db, template):
     book = Workbook(write_only=True)
-    details = book.create_sheet(text('sheet_sales'))
+    details = book.create_sheet(text('sheet_details'))
     details.freeze_panes = 'A2'
     for index in range(1, len(template.columns) + 1):
         details.column_dimensions[get_column_letter(index)].width = 20
@@ -579,7 +579,7 @@ def download(job_id: str):
     job = job_for(job_id)
     if job['status'] != 'done':
         raise Problem(409, 'job_incomplete')
-    return FileResponse(job['output'], filename=f'sales-merged-{date.today().isoformat()}.xlsx',
+    return FileResponse(job['output'], filename=f'sheets-merged-{date.today().isoformat()}.xlsx',
                         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
 
 

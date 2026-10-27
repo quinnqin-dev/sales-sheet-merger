@@ -12,6 +12,7 @@ credentials*
 library.json
 library.json.new
 *.sales-template.json
+*.sheet-template.json
 instance.lock
 *.db
 *.xlsx

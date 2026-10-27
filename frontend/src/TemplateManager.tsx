@@ -25,7 +25,7 @@ import {
   type SavedTemplate,
   type TemplateDocument,
 } from "./template-files";
-import { SALES_TEMPLATE_EXAMPLE, type Template } from "./template-state";
+import { OUTPUT_TEMPLATE_EXAMPLE, type Template } from "./template-state";
 
 type Props = {
   templates: SavedTemplate[];
@@ -167,7 +167,7 @@ export function TemplateManager(props: Props) {
       {editing !== null ? (
         <TemplateEditor
           key={editing}
-          template={edited?.template ?? SALES_TEMPLATE_EXAMPLE}
+          template={edited?.template ?? OUTPUT_TEMPLATE_EXAMPLE}
           configured={!!edited}
           returnToBatch
           onReturn={() => setEditing(null)}

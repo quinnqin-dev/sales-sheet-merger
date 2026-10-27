@@ -631,7 +631,7 @@ function App() {
     return (
       <div className="boot">
         <Layers3 size={38} />
-        <h2>{t("ui.salesSheetMerger")}</h2>
+        <h2>{t("ui.sheetMerger")}</h2>
         <LanguageSwitcher />
         <p>{renderMessage(error) || t("ui.openingYourLocalWorkspace")}</p>
         {error && (
@@ -655,7 +655,7 @@ function App() {
             <Layers3 size={24} />
           </span>
           <span className="brand-name">
-            {t("ui.salesSheetMerger")}
+            {t("ui.sheetMerger")}
             <small>{t("ui.brandSubtitle")}</small>
           </span>
         </a>
@@ -707,7 +707,7 @@ function App() {
           <ChevronRight size={14} />
         </button>
         <div className="sidebar-version">
-          {t("ui.salesSheetMergerV10")}
+          {t("ui.sheetMergerV10")}
           <span>{t("ui.lessTimeSpentOnRepetitiveCleanup")}</span>
         </div>
       </aside>
@@ -759,10 +759,10 @@ function App() {
               <div className="page-heading">
                 <div>
                   <div className="eyebrow">
-                    {t("ui.oneStandardForEverySalesSource")}
+                    {t("ui.oneStandardForEverySource")}
                   </div>
-                  <h1>{t("ui.mergeSalesSpreadsheets")}</h1>
-                  <p>{t("ui.turnSalesRecordsFromDifferentSourcesInto")}</p>
+                  <h1>{t("ui.mergeSpreadsheets")}</h1>
+                  <p>{t("ui.turnRecordsFromDifferentSourcesInto")}</p>
                 </div>
                 {files.length > 0 && !running && (
                   <button
@@ -830,7 +830,7 @@ function App() {
                         )}
                       </span>
                       <h2>
-                        {renderMessage(busy) || t("ui.dropYourSalesFilesHere")}
+                        {renderMessage(busy) || t("ui.dropYourFilesHere")}
                       </h2>
                       <p>{t("ui.selectMultipleExcelAndCsvFilesFrom")}</p>
                       <button
@@ -848,7 +848,7 @@ function App() {
                       </div>
                       <input
                         ref={uploadRef}
-                        aria-label={t("ui.uploadSalesFiles")}
+                        aria-label={t("ui.uploadFiles")}
                         type="file"
                         multiple
                         accept=".xlsx,.xls,.csv"
@@ -871,7 +871,7 @@ function App() {
                         <div>
                           {t("ui.noFilesImportedYet")}
                           <small>
-                            {t("ui.startWithSalesRecordsExportedFromYour")}
+                            {t("ui.startWithSpreadsheetsFromAnySource")}
                           </small>
                         </div>
                       </div>
@@ -1544,7 +1544,7 @@ function App() {
                   <div className="large-empty">
                     <Settings2 size={34} />
                     <h2>{t("ui.noSourceRulesSavedYet")}</h2>
-                    <p>{t("ui.importASalesSpreadsheetAndSaveIts")}</p>
+                    <p>{t("ui.importASpreadsheetAndSaveIts")}</p>
                     <button
                       className="btn primary"
                       onClick={() => {
@@ -1689,7 +1689,7 @@ function App() {
             />
           )}
           <footer className="page-footer">
-            <span>{t("ui.salesSheetMergerEverySourceOneConsistent")}</span>
+            <span>{t("ui.sheetMergerEverySourceOneConsistent")}</span>
             <span>
               <ShieldCheck size={13} />
               {t("ui.localProcessingReusableRules")}
@@ -1914,7 +1914,7 @@ function RuleEditor({
               value={draft.name}
               maxLength={100}
               onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-              placeholder={t("ui.eGMarketplaceSalesExport")}
+              placeholder={t("ui.eGSourceExport")}
             />
           </label>
           <div className="mapping-head">

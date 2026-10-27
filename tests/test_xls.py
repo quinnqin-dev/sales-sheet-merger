@@ -57,7 +57,7 @@ def test_xls_mixed_merge_preview_export_and_rule_reuse(client, date_1904):
     assert job['summary']['totals']['amount'] == '182.00'
     with_book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content))
     try:
-        assert with_book.sheetnames == ['Sales Details']
+        assert with_book.sheetnames == ['Merged Data']
         sheet = with_book.active
         assert sheet.max_row == 5
         assert sheet['A2'].value == datetime(2026, 10, 27)

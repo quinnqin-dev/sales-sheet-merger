@@ -28,7 +28,7 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     document.documentElement.lang = locale;
     document.title =
-      locale === "en" ? "Sales Sheet Merger" : "归表 · 销售表合并工具";
+      locale === "en" ? "Sheet Merger" : "归表 · 表格批量合并工具";
   }, [locale]);
   return (
     <Context.Provider

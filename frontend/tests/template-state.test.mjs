@@ -1,13 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {initialTemplateDraft, validTemplateDraft, SALES_TEMPLATE_EXAMPLE} from '../src/template-state.ts';
+import {initialTemplateDraft, validTemplateDraft, OUTPUT_TEMPLATE_EXAMPLE} from '../src/template-state.ts';
 
 const example = {name:'Standard Sales Details', columns:[
   {id:'date',name:'Date',type:'date',required:true},
   {id:'amount',name:'Sales Amount',type:'number',required:true},
 ]};
 
-test('fresh setup has no real sales fields or required values despite the example', () => {
+test('fresh setup has no real example fields or required values despite the example', () => {
   const draft=initialTemplateDraft(example,false);
   assert.equal(draft.name,'');
   assert.equal(draft.columns.length,1);
@@ -39,14 +39,14 @@ test('blank and duplicate target columns cannot be saved', () => {
 });
 
 test('reset produces a new empty draft without restoring example values or old target IDs', () => {
-  const first=initialTemplateDraft(SALES_TEMPLATE_EXAMPLE,false);
+  const first=initialTemplateDraft(OUTPUT_TEMPLATE_EXAMPLE,false);
   first.name='Student Grades';first.columns[0].name='Student ID';first.columns[0].required=true;
-  const reset=initialTemplateDraft(SALES_TEMPLATE_EXAMPLE,false);
+  const reset=initialTemplateDraft(OUTPUT_TEMPLATE_EXAMPLE,false);
   assert.notEqual(reset.columns[0].id,first.columns[0].id);
   assert.equal(reset.name,'');assert.equal(reset.columns[0].name,'');
   assert.equal(reset.columns[0].required,false);
   assert.equal(validTemplateDraft(reset),false);
-  assert.equal(SALES_TEMPLATE_EXAMPLE.name,'Standard Sales Details');
+  assert.equal(OUTPUT_TEMPLATE_EXAMPLE.name,'Output Template');
 });
 
 test('legacy template contents cannot auto-fill an unconfigured editor', () => {

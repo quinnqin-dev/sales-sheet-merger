@@ -9,7 +9,7 @@ from test_merger import client, csv_bytes, upload
 
 def test_fresh_example_is_not_configured_until_explicitly_saved(client):
     example=client.get('/api/config').json()
-    assert example['template']['name']=='Standard Sales Details'
+    assert example['template']['name']=='Output Template'
     assert example['template_configured'] is False
     # Even saving the identical example is an explicit configuration action.
     saved=client.put('/api/template',json=example['template'])

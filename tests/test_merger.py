@@ -118,8 +118,8 @@ def test_three_sources_preview_export_and_reuse(client):
     assert issue['row'] == 4 and issue['raw'][0] == 'bad-date'
     result = client.get(f'/api/jobs/{job["id"]}/export')
     book = load_workbook(io.BytesIO(result.content), data_only=False)
-    assert book.sheetnames == ['Sales Details']
-    details = book['Sales Details']
+    assert book.sheetnames == ['Merged Data']
+    details = book['Merged Data']
     assert details['B2'].value == '000123' and details['B2'].data_type == 's'
     assert details['D2'].value == '=literal' and details['D2'].data_type == 's'
     assert details['A2'].is_date and details['G2'].data_type == 'n'
@@ -173,7 +173,7 @@ def test_invalid_numbers(value, style):
 
 def test_header_correction_encoding_and_unreadable_file_block(client):
     headers = ['日期','金额']
-    data = excel(['销售明细'], [headers, ['2026-10-27', 10]], {'说明':[['备注']]})
+    data = excel(['合并明细'], [headers, ['2026-10-27', 10]], {'说明':[['备注']]})
     batch, files = upload(client, [('标题行.xlsx',data), ('损坏.xlsx',b'not an excel file')])
     first = files[0]
     rechecked = client.post(f'/api/batches/{batch}/files/{first["id"]}/inspect', json={'header_rows':{'明细':2}}).json()
@@ -241,8 +241,8 @@ def test_long_problem_values_stay_available_in_page_results_not_excel(client):
     job = run(client,batch,request_for(files,[rule]))
     assert job['summary']['issues'] == 1 and job['summary']['valid'] == 0
     book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content),data_only=True)
-    assert book.sheetnames == ['Sales Details']
-    assert book['Sales Details'].max_row == 1
+    assert book.sheetnames == ['Merged Data']
+    assert book['Merged Data'].max_row == 1
     problem = client.get(f'/api/jobs/{job["id"]}/rows?kind=issues').json()['rows'][0]
     assert problem['raw'] == ['bad','1',long_text]
     assert any(reason['code'] == 'text_length' for reason in problem['reasons'])
@@ -294,10 +294,10 @@ def test_thirty_files_one_hundred_thousand_rows(client):
     page = client.get(f'/api/jobs/{job["id"]}/rows?page=2000').json()
     assert len(page['rows']) == 50 and page['rows'][-1]['values'][1] == '00099999'
     book = load_workbook(io.BytesIO(client.get(f'/api/jobs/{job["id"]}/export').content),read_only=True,data_only=True)
-    assert book.sheetnames == ['Sales Details']
+    assert book.sheetnames == ['Merged Data']
     count = 0
     total = Decimal(0)
-    for row in book['Sales Details'].iter_rows(min_row=2,values_only=True):
+    for row in book['Merged Data'].iter_rows(min_row=2,values_only=True):
         count += 1
         total += Decimal(str(row[6]))
     assert count == 100000 and total == Decimal('110000.0')

@@ -1,10 +1,10 @@
-# Sales Sheet Merger
+# Sheet Merger
 
 [English](README.md) · [简体中文](README.zh-CN.md)
 
 Merge spreadsheets with different column names into one consistent Excel file. Define your output columns once, save a mapping for each source, and reuse it next time.
 
-Built for sales records, and also useful for student grades and other tables that need the same columns. Files are processed on your computer, with no account or cloud upload required. No API key or separate database service is needed.
+Use it for student grades, inventory lists, order records, or any tables that need a consistent column layout. Files are processed on your computer, with no account or cloud upload required. No API key or separate database service is needed.
 
 - **Import:** `.xlsx`, `.xls`, and `.csv`, including multiple worksheets.
 - **Customize:** output column names, order, data types, and required fields.
@@ -29,7 +29,7 @@ Keep the launch terminal open while using the tool. **Closing the browser does n
 
 ## User guide
 
-This example combines two student-grade tables with different headers: **12 records per file → 24 merged records**. The same steps apply to sales spreadsheets. Screenshots use fictional data; click an image to view it at full size.
+This example combines two student-grade tables with different headers: **12 records per file → 24 merged records**. The same steps apply to other spreadsheets. Screenshots use fictional data; click an image to view it at full size.
 
 Two settings work together:
 
@@ -150,6 +150,8 @@ Files are processed locally. Source files are never overwritten. Settings are sa
 - The service binds to `127.0.0.1` and checks local Host and Origin headers. No remote fonts, scripts, or analytics are loaded.
 
 </details>
+
+The existing local data directory and template-file format identifiers are retained for compatibility with earlier versions; saved customer templates and rules are not renamed.
 
 ## Development
 

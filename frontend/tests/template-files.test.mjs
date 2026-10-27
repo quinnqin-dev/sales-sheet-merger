@@ -27,7 +27,7 @@ test('the native picker uses the user gesture and cancellation is not converted 
   const cancelled=new DOMException('Cancelled','AbortError');
   globalThis.window={showSaveFilePicker(value){options=value;return Promise.reject(cancelled);}};
   const result=chooseTemplateFile({...template,name:'Grades / 7A'});
-  assert.equal(options.suggestedName,'Grades _ 7A.sales-template.json');
+  assert.equal(options.suggestedName,'Grades _ 7A.sheet-template.json');
   await assert.rejects(result,error=>error===cancelled);
   globalThis.window={};
   assert.throws(()=>chooseTemplateFile(template),error=>error instanceof TemplateFileError && error.message==='templates.browserUnsupported');
