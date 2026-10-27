@@ -2077,3 +2077,80 @@ td {
 .template-panel input:not(:placeholder-shown) {
   color: #30463b;
 }
+
+.template-library-list {
+  display: grid;
+  gap: 14px;
+}
+.template-library-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  padding: 23px;
+}
+.template-library-card > div {
+  flex: 1;
+  min-width: 0;
+}
+.template-library-card h2 {
+  font-size: 17px;
+  color: #38543d;
+  margin-bottom: 8px;
+  overflow-wrap: anywhere;
+}
+.template-library-card p,
+.template-library-card small,
+.template-library-note {
+  color: #728467;
+  font-size: 12px;
+  line-height: 1.8;
+  overflow-wrap: anywhere;
+}
+.template-library-note {
+  margin-top: 20px;
+}
+.template-batch-return {
+  margin-bottom: 18px;
+}
+.batch-template-picker {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+  color: #536b4c;
+  max-width: 560px;
+}
+.batch-template-picker select {
+  width: 100%;
+}
+.template-confirm-preview {
+  margin-top: 28px;
+  overflow-x: auto;
+}
+.template-confirm-preview h3 {
+  font-size: 17px;
+  color: #36523c;
+}
+.template-confirm-preview td,
+.template-confirm-preview th {
+  padding: 15px;
+}
+.template-pending p {
+  margin: 15px 0 25px;
+  line-height: 1.9;
+}
+@media (max-width: 1050px) {
+  .steps {
+    flex-wrap: wrap;
+    gap: 12px 0;
+  }
+  .template-library-card {
+    flex-wrap: wrap;
+  }
+  .template-library-card > div {
+    flex-basis: 60%;
+  }
+  .template-library-card > button {
+    margin-left: auto;
+  }
+}

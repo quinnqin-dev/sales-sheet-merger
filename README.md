@@ -46,15 +46,15 @@ Expand a file to preview the source data. If its column names are not on the fir
 
 ![Two imported student-grade files with 24 rows selected](frontend/public/guide/import-en.webp)
 
-### 2. Fill in your output template
+### 2. Select and confirm an output template
 
-On first use, Next shows **Output template not configured**. Click **Go to output template**, enter a template name, and add the columns you want in the final file.
+Every new batch starts with no template selected. The **Output template not configured** prompt appears when you enter this step. Click **Not now** to select from the library, or **Go to output template** to create one.
 
-For this example, enter **Student grades** and four columns: **Student ID**, **Name**, **Subject**, and **Score**. Use **Text** for the first three and **Number** for Score. Mark a column required if empty values should be treated as problems.
+Choose **Student grades** and review its four columns: **Student ID**, **Name**, **Subject** (Text), and **Score** (Number). Click **Confirm template, next**.
 
-**Gray examples are placeholders, not saved values.** Enter your own names, then click **Save and return**. Your imported files and worksheet selections stay in place; click Next again to configure their mappings. Once saved, the template can be reused.
+If you have no saved templates, see [Create and edit templates](#create-and-edit-templates) below. Imported files and worksheet selections stay in place while you configure a template.
 
-![A manually filled four-column student-grade output template](frontend/public/guide/template-en.webp)
+![Confirming the saved four-column student-grade template](frontend/public/guide/template-en.webp)
 
 ### 3. Match the source columns
 
@@ -71,23 +71,39 @@ Keep **Save to the rule library for next time** checked if you want to reuse the
 
 ![Source columns mapped to the four output columns](frontend/public/guide/mapping-en.webp)
 
-### 4. Check and download
+### 4. Preview and check
 
-Click **Preview converted data**. Check the IDs, names, scores, and any warnings in the first 20 records. Return to the rules if a column or conversion is wrong.
+Click **Preview converted data**. Check the IDs, names, scores, and warnings in the first 20 records. Return to the source rules to correct a mapping. To change the output template, return to step 2; mappings must be confirmed again after a change.
 
-Then click **Start merge** → **Download merged Excel**. In this example, both files produce **24 valid records** with the same four columns.
+![Previewing mapped student-grade records](frontend/public/guide/preview-en.webp)
+
+### 5. Merge and download
+
+Click **Start merge** → **Download merged Excel**. This example produces **24 valid records** with the same four columns.
 
 The downloaded Excel contains **one worksheet of valid records**. Problem rows and their reasons stay on the results page. Exact duplicates are retained and flagged; they are not automatically removed.
 
 ![Completed merge with 24 valid records and the download button](frontend/public/guide/result-en.webp)
 
+## Create and edit templates
+
+Open **Output template** to access the template library. Click **New template**, or **Edit template** beside a saved entry. Enter a name, add or reorder columns, and set each column’s type and required status. Gray examples are placeholders, not saved values.
+
+Click **Save file & add to library** to choose a folder and filename on your computer. The JSON file contains the template configuration, without table data or source rules. After the file is saved, the template is added to the library automatically. Editing updates that library entry; **Save as new template** creates a separate entry.
+
+Use Chrome or Edge for the native save-location dialog. If your browser does not support it, the tool explains this rather than silently saving elsewhere. Cancelling or failing to write the file leaves the library unchanged. If the file is saved but registration fails, retry adding it to the library without writing it again.
+
+**Import template JSON** adds an existing template file to the library. A changed file with the same template ID requires confirmation before replacing the library copy. External file edits are not synchronized automatically; reimport the file to apply them. The tool does not delete or silently rewrite your saved files.
+
+![Editing a saved template and saving a JSON copy](frontend/public/guide/editor-en.webp)
+
 ## Reuse your setup
 
-Your output template and saved rules remain available after restarting. On your next import, matching headers suggest a saved rule—even when their column order differs. Review and confirm the mapping before merging.
+Your template library and saved source rules remain available after restarting. Select a template explicitly for each new batch. On your next import, matching headers suggest a saved rule—even when their column order differs. Review and confirm the mapping before merging.
 
-Use **Source rules → Export rule library** to back up both the output template and saved rules as JSON. **Import rule library** restores a backup by replacing the current template and rules.
+Use **Source rules → Export rule library** to back up the current output template, template library, and saved source rules as JSON. **Import rule library** restores a backup by replacing the current template, template library, and rules.
 
-To change the final columns, edit **Output template** and save, then confirm the source mappings again. **Reset template** clears the template configuration after confirmation; imported files and saved source rules remain available.
+To change the final columns, edit **Output template** and save, then confirm the source mappings again. **Reset template** clears the current template configuration and draft after confirmation; saved templates, imported files, and source rules remain available.
 
 ## Common questions
 

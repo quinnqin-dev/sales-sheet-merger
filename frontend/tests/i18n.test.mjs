@@ -54,7 +54,8 @@ test('API error codes survive state storage and locale changes', () => {
 test('every literal UI message key exists in both catalogs', () => {
   const en=JSON.parse(fs.readFileSync(new URL('../../shared/locales/en.json',import.meta.url),'utf8'));
   const zh=JSON.parse(fs.readFileSync(new URL('../../shared/locales/zh-CN.json',import.meta.url),'utf8'));
-  const source=ts.createSourceFile('main.tsx',fs.readFileSync(new URL('../src/main.tsx',import.meta.url),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX);
+  const directory=new URL('../src/',import.meta.url);
+  const sources=fs.readdirSync(directory).filter(name=>name.endsWith('.tsx')).map(name=>ts.createSourceFile(name,fs.readFileSync(new URL(name,directory),'utf8'),ts.ScriptTarget.Latest,true,ts.ScriptKind.TSX));
   let checked=0;
   function visit(node){
     if(ts.isCallExpression(node)&&ts.isIdentifier(node.expression)&&['t','msg'].includes(node.expression.text)&&node.arguments[0]&&ts.isStringLiteral(node.arguments[0])){
@@ -62,6 +63,6 @@ test('every literal UI message key exists in both catalogs', () => {
     }
     ts.forEachChild(node,visit);
   }
-  visit(source);
+  sources.forEach(visit);
   assert.ok(checked>150);
 });

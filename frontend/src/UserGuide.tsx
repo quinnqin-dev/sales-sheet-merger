@@ -9,7 +9,7 @@ import { useI18n } from "./i18n";
 
 export function UserGuide({ onReturn }: { onReturn: () => void }) {
   const { locale, t } = useI18n();
-  const steps = ["import", "template", "mapping", "result"] as const;
+  const steps = ["import", "template", "mapping", "preview", "result"] as const;
   const exampleHeaders = {
     id: "学号",
     name: "姓名",

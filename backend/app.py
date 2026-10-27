@@ -26,7 +26,7 @@ from pydantic import ValidationError
 from .engine import (ILLEGAL_XML, MAX_ROWS, convert_row, dumps, duplicate_key,
                      inspect_sheet, is_blank, read_rows, sheet_names, validate_rule, wire)
 from .i18n import (LOCALE, DomainError, Problem, descriptor, error_fields, localize_reason, resolve_locale, text)
-from .models import DEFAULT_TEMPLATE, InspectRequest, Library, Rule, RunRequest, Template
+from .models import DEFAULT_TEMPLATE, InspectRequest, Library, Rule, RunRequest, Template, TemplateFile, SavedTemplate
 
 ROOT = Path(__file__).resolve().parents[1]
 DATA_DIR = Path(os.environ.get('SALES_MERGER_DATA_DIR', str(Path.home() / 'Library/Application Support/SalesSheetMerger')))
@@ -42,9 +42,12 @@ def library_path():
 
 
 def save_library(lib):
+    content = lib.model_dump_json(indent=2)
+    if len(content.encode('utf-8')) > 2 * 1024 * 1024:
+        raise Problem(413, 'library_size')
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     temporary = DATA_DIR / 'library.json.new'
-    temporary.write_text(lib.model_dump_json(indent=2), encoding='utf-8')
+    temporary.write_text(content, encoding='utf-8')
     temporary.replace(library_path())
 
 
@@ -202,6 +205,40 @@ def reset_template():
         lib = load_library()
         lib.template = DEFAULT_TEMPLATE.model_copy(deep=True)
         lib.template_configured = False
+        save_library(lib)
+    return lib
+
+
+@app.post('/api/templates/validate')
+def validate_template_file(document: TemplateFile):
+    return document
+
+
+@app.post('/api/templates')
+def create_saved_template(document: SavedTemplate):
+    with STATE_LOCK:
+        lib = load_library()
+        existing = next((t for t in lib.templates if t.id == document.id), None)
+        if existing:
+            if existing == document:
+                return lib
+            raise Problem(409, 'template_exists')
+        if len(lib.templates) >= 100:
+            raise Problem(400, 'template_limit')
+        lib.templates.append(document)
+        save_library(lib)
+    return lib
+
+
+@app.put('/api/templates/{template_id}')
+def update_saved_template(template_id: str, document: SavedTemplate):
+    with STATE_LOCK:
+        lib = load_library()
+        if template_id != document.id:
+            raise Problem(400, 'invalid_config')
+        if not any(t.id == template_id for t in lib.templates):
+            raise Problem(404, 'template_missing')
+        lib.templates = [document if t.id == template_id else t for t in lib.templates]
         save_library(lib)
     return lib
 

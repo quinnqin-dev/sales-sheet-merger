@@ -13,10 +13,8 @@ import {
 import React, { useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
-  ArrowDown,
   ArrowLeft,
   ArrowRight,
-  ArrowUp,
   Check,
   CheckCheck,
   ChevronDown,
@@ -32,8 +30,6 @@ import {
   LoaderCircle,
   LockKeyhole,
   Plus,
-  RefreshCw,
-  Save,
   Settings2,
   ShieldCheck,
   Sparkles,
@@ -44,13 +40,9 @@ import {
 } from "lucide-react";
 import "./style.css";
 import { UserGuide } from "./UserGuide";
-import {
-  initialTemplateDraft,
-  SALES_TEMPLATE_EXAMPLE,
-  validTemplateDraft,
-  type Column,
-  type Template,
-} from "./template-state";
+import { TemplateManager, TemplateSelector } from "./TemplateManager";
+import type { SavedTemplate } from "./template-files";
+import type { Template } from "./template-state";
 
 function LanguageSwitcher() {
   const { locale, setLocale } = useI18n();
@@ -93,6 +85,7 @@ type Library = {
   template: Template;
   template_configured: boolean;
   rules: Rule[];
+  templates: SavedTemplate[];
 };
 type Sheet = {
   name: string;
@@ -282,6 +275,10 @@ function App() {
   const [templatePrompt, setTemplatePrompt] = useState(false);
   const [returnFromTemplate, setReturnFromTemplate] = useState(false);
   const [step, setStep] = useState(1);
+  const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
+    null,
+  );
+  const [templateEditId, setTemplateEditId] = useState<string | null>(null);
   const [batch, setBatch] = useState("");
   const [files, setFiles] = useState<SourceFile[]>([]);
   const [assignments, setAssignments] = useState<Record<string, Assignment>>(
@@ -313,6 +310,10 @@ function App() {
   const importRef = useRef<HTMLInputElement>(null);
   const running = job?.status === "running";
   const template = library?.template;
+  const savedTemplates = library?.templates ?? [];
+  const selectedTemplate = savedTemplates.find(
+    (item) => item.id === selectedTemplateId,
+  );
   const selections = files.flatMap((f) =>
     f.sheets
       .filter((s) => assignments[keyFor(f, s)]?.enabled)
@@ -332,7 +333,7 @@ function App() {
     !selections.length;
   useEffect(() => {
     api<Library>("/config")
-      .then(setLibrary)
+      .then((lib) => setLibrary({ ...lib, templates: lib.templates ?? [] }))
       .catch((e) => setError(messageFromError(e)));
   }, []);
   useEffect(() => {
@@ -408,10 +409,7 @@ function App() {
             ) || [];
           updated[k] = {
             enabled: f.sheets.find((x) => !x.error)?.name === s.name,
-            rule:
-              matches.length === 1
-                ? reconcileRule(matches[0], library!.template)
-                : null,
+            rule: matches.length === 1 ? matches[0] : null,
             confirmed: false,
           };
         }
@@ -481,10 +479,7 @@ function App() {
           );
           update[keyFor(next, s)] = {
             enabled: next.sheets.find((x) => !x.error)?.name === s.name,
-            rule:
-              matches.length === 1
-                ? reconcileRule(matches[0], library!.template)
-                : null,
+            rule: matches.length === 1 ? matches[0] : null,
             confirmed: false,
           };
         }
@@ -509,7 +504,7 @@ function App() {
         rows: ResultRow[];
       }>(`/batches/${batch}/preview`, "POST", payload());
       setPreview(data.rows);
-      setStep(3);
+      setStep(4);
     });
   }
   async function start() {
@@ -520,7 +515,7 @@ function App() {
       setResults({ rows: [], total: 0 });
       const next = await api<Job>(`/batches/${batch}/jobs`, "POST", payload());
       setJob(next);
-      setStep(4);
+      setStep(5);
     });
   }
   async function saveEditor(rule: Rule, saveToLibrary: boolean) {
@@ -552,6 +547,70 @@ function App() {
     setError(null);
     setTemplatePrompt(false);
     setReturnFromTemplate(false);
+    setSelectedTemplateId(null);
+  }
+  function invalidateTemplate() {
+    setAssignments((old) =>
+      Object.fromEntries(
+        Object.entries(old).map(([key, value]) => [
+          key,
+          { ...value, confirmed: false },
+        ]),
+      ),
+    );
+    setPreview([]);
+    setJob(null);
+    setResults({ rows: [], total: 0 });
+  }
+  function goStep(next: number) {
+    if (next >= 2 && !selectedTemplate) {
+      setStep(2);
+      setTemplatePrompt(true);
+      return;
+    }
+    setStep(next);
+  }
+  function manageTemplates(id: string | null) {
+    setTemplateEditId(id);
+    setReturnFromTemplate(true);
+    setView("template");
+    setError(null);
+  }
+  async function confirmTemplate() {
+    if (!selectedTemplate) return;
+    await action(msg("templates.applying"), async () => {
+      const next = await api<Library>(
+        "/template",
+        "PUT",
+        selectedTemplate.template,
+      );
+      setLibrary(next);
+      setStep(3);
+    });
+  }
+  async function registerTemplate(record: SavedTemplate, replace: boolean) {
+    const next = await api<Library>(
+      replace ? `/templates/${encodeURIComponent(record.id)}` : "/templates",
+      replace ? "PUT" : "POST",
+      record,
+    );
+    setLibrary(next);
+    if (record.id === selectedTemplateId) {
+      invalidateTemplate();
+      setStep(files.length ? 2 : 1);
+    }
+  }
+  async function resetTemplate() {
+    let success = false;
+    await action(msg("ui.resettingOutputTemplate"), async () => {
+      setLibrary(await api<Library>("/template/reset", "POST"));
+      setSelectedTemplateId(null);
+      invalidateTemplate();
+      setStep(files.length ? 2 : 1);
+      setNotice(msg("ui.outputTemplateReset"));
+      success = true;
+    });
+    return success;
   }
   if (!library)
     return (
@@ -598,6 +657,9 @@ function App() {
               disabled={!!busy || running}
               onClick={() => {
                 setView(item.id);
+                if (item.id === "merge" && step === 2 && !selectedTemplate)
+                  setTemplatePrompt(true);
+                setTemplateEditId(null);
                 setReturnFromTemplate(false);
                 setError(null);
               }}
@@ -703,6 +765,7 @@ function App() {
               <div className="steps">
                 {[
                   t("ui.importFiles"),
+                  t("templates.confirmStep"),
                   t("ui.configureRules"),
                   t("ui.previewCheck"),
                   t("ui.mergeExport"),
@@ -710,7 +773,7 @@ function App() {
                   <React.Fragment key={label}>
                     <button
                       disabled={!!busy || running || i + 1 > step}
-                      onClick={() => setStep(i + 1)}
+                      onClick={() => goStep(i + 1)}
                       className={`step ${step === i + 1 ? "current" : ""} ${step > i + 1 ? "complete" : ""}`}
                     >
                       <span>
@@ -722,7 +785,7 @@ function App() {
                       </span>
                       {label}
                     </button>
-                    {i < 3 && (
+                    {i < 4 && (
                       <div
                         className={`step-line ${step > i + 1 ? "filled" : ""}`}
                       />
@@ -994,18 +1057,18 @@ function App() {
                       <div className="overview-row">
                         <span>{t("ui.outputFormat")}</span>
                         <strong>
-                          {library.template_configured
+                          {selectedTemplate
                             ? t("ui.outputColumns", {
-                                count: library.template.columns.length,
+                                count: selectedTemplate.template.columns.length,
                               })
-                            : t("ui.outputTemplateNotConfigured")}
+                            : t("templates.notSelected")}
                         </strong>
                       </div>
                       <div className="template-label">
                         <Table2 size={15} />
-                        {library.template_configured
-                          ? library.template.name
-                          : t("ui.outputTemplateNotConfigured")}
+                        {selectedTemplate
+                          ? selectedTemplate.template.name
+                          : t("templates.notSelected")}
                       </div>
                       {rowCount > 100000 && (
                         <p className="inline-error">
@@ -1017,14 +1080,10 @@ function App() {
                         disabled={blockers || !!busy}
                         onClick={() => {
                           setError(null);
-                          if (!library.template_configured) {
-                            setTemplatePrompt(true);
-                            return;
-                          }
-                          setStep(2);
+                          goStep(2);
                         }}
                       >
-                        {t("ui.nextConfigureRules")}
+                        {t("templates.nextConfirm")}
                         <ArrowRight size={16} />
                       </button>
                     </div>
@@ -1045,6 +1104,22 @@ function App() {
                 </div>
               )}
               {step === 2 && (
+                <TemplateSelector
+                  templates={savedTemplates}
+                  selectedId={selectedTemplateId}
+                  busy={!!busy}
+                  onSelect={(id) => {
+                    if (id !== selectedTemplateId) {
+                      setSelectedTemplateId(id);
+                      invalidateTemplate();
+                    }
+                  }}
+                  onManage={manageTemplates}
+                  onBack={() => setStep(1)}
+                  onConfirm={() => void confirmTemplate()}
+                />
+              )}
+              {step === 3 && (
                 <>
                   <div className="panel section-panel">
                     <div className="section-heading">
@@ -1160,9 +1235,9 @@ function App() {
                     ))}
                   </div>
                   <div className="wizard-footer">
-                    <button className="btn subtle" onClick={() => setStep(1)}>
+                    <button className="btn subtle" onClick={() => goStep(2)}>
                       <ArrowLeft size={16} />
-                      {t("ui.backToImport")}
+                      {t("templates.backToConfirmation")}
                     </button>
                     <button
                       className="btn primary"
@@ -1177,7 +1252,7 @@ function App() {
                   </div>
                 </>
               )}
-              {step === 3 && (
+              {step === 4 && (
                 <>
                   <div className="panel section-panel">
                     <div className="section-heading">
@@ -1194,7 +1269,7 @@ function App() {
                     </div>
                   </div>
                   <div className="wizard-footer">
-                    <button className="btn subtle" onClick={() => setStep(2)}>
+                    <button className="btn subtle" onClick={() => setStep(3)}>
                       <ArrowLeft size={16} />
                       {t("ui.backToRules")}
                     </button>
@@ -1209,7 +1284,7 @@ function App() {
                   </div>
                 </>
               )}
-              {step === 4 && job && (
+              {step === 5 && job && (
                 <>
                   {running ? (
                     <div className="panel processing">
@@ -1237,7 +1312,7 @@ function App() {
                       <p>{errorMessage(job)}</p>
                       <button
                         className="btn secondary"
-                        onClick={() => setStep(2)}
+                        onClick={() => setStep(3)}
                       >
                         {t("ui.backToCheckRules")}
                       </button>
@@ -1440,6 +1515,9 @@ function App() {
                         ),
                       );
                       setStep(1);
+                      setSelectedTemplateId(null);
+                      setPreview([]);
+                      setJob(null);
                       setNotice(
                         msg("ui.ruleLibraryImportedConfirmTheMappingsFor"),
                       );
@@ -1560,60 +1638,43 @@ function App() {
             </>
           )}
           {view === "template" && (
-            <TemplateEditor
-              template={library.template}
-              configured={library.template_configured}
+            <TemplateManager
+              templates={savedTemplates}
+              busy={!!busy}
+              initialEdit={templateEditId}
               returnToBatch={returnFromTemplate}
               onReturn={() => {
                 setReturnFromTemplate(false);
                 setView("merge");
-                setStep(1);
+                goStep(2);
               }}
-              busy={!!busy}
-              onReset={async () => {
-                let success = false;
-                await action(msg("ui.resettingOutputTemplate"), async () => {
-                  setLibrary(await api<Library>("/template/reset", "POST"));
-                  setAssignments((old) =>
-                    Object.fromEntries(
-                      Object.entries(old).map(([k, a]) => [
-                        k,
-                        { ...a, rule: null, confirmed: false },
-                      ]),
-                    ),
-                  );
-                  setStep(1);
-                  setPreview([]);
-                  setJob(null);
-                  setNotice(msg("ui.outputTemplateReset"));
-                  success = true;
-                });
-                return success;
-              }}
-              onSave={async (updatedTemplate) => {
-                await action(msg("ui.savingTemplate"), async () => {
-                  setLibrary(
-                    await api<Library>("/template", "PUT", updatedTemplate),
-                  );
-                  setAssignments((old) =>
-                    Object.fromEntries(
-                      Object.entries(old).map(([k, a]) => [
-                        k,
-                        { ...a, confirmed: false },
-                      ]),
-                    ),
-                  );
-                  setStep(1);
-                  if (returnFromTemplate) {
-                    setReturnFromTemplate(false);
-                    setView("merge");
-                  }
-                  setNotice(msg("ui.templateSavedConfirmThisBatchSMappings"));
-                });
+              perform={action}
+              validate={(document) =>
+                api("/templates/validate", "POST", document)
+              }
+              register={registerTemplate}
+              onReset={resetTemplate}
+              onRegistered={(id) => {
+                setNotice(msg("templates.saved"));
+                if (returnFromTemplate) {
+                  setSelectedTemplateId(id);
+                  invalidateTemplate();
+                  setReturnFromTemplate(false);
+                  setView("merge");
+                  setStep(2);
+                  setTemplatePrompt(false);
+                }
               }}
             />
           )}
-          {view === "help" && <UserGuide onReturn={() => setView("merge")} />}
+          {view === "help" && (
+            <UserGuide
+              onReturn={() => {
+                setView("merge");
+                if (step === 2 && !selectedTemplate) setTemplatePrompt(true);
+              }}
+            />
+          )}
           <footer className="page-footer">
             <span>{t("ui.salesSheetMergerEverySourceOneConsistent")}</span>
             <span>
@@ -1643,8 +1704,7 @@ function App() {
           onClose={() => setTemplatePrompt(false)}
           onConfigure={() => {
             setTemplatePrompt(false);
-            setReturnFromTemplate(true);
-            setView("template");
+            manageTemplates(null);
           }}
         />
       )}
@@ -2161,313 +2221,6 @@ function TemplateRequiredDialog({
   );
 }
 
-function TemplateResetDialog({
-  busy,
-  onCancel,
-  onConfirm,
-}: {
-  busy: boolean;
-  onCancel: () => void;
-  onConfirm: () => Promise<void>;
-}) {
-  const { t } = useI18n();
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const dialog = ref.current!;
-    dialog.showModal();
-    return () => dialog.close();
-  }, []);
-  return (
-    <dialog
-      ref={ref}
-      className="template-required-dialog"
-      aria-labelledby="template-reset-title"
-      aria-describedby="template-reset-description"
-      onCancel={(e) => {
-        e.preventDefault();
-        if (!busy) onCancel();
-      }}
-    >
-      <div className="template-required-heading">
-        <span className="file-icon">
-          <RefreshCw size={23} />
-        </span>
-      </div>
-      <h2 id="template-reset-title">{t("ui.resetTemplateTitle")}</h2>
-      <p id="template-reset-description">
-        {t("ui.confirmOutputTemplateReset")}
-      </p>
-      <div className="button-group">
-        <button className="btn secondary" disabled={busy} onClick={onCancel}>
-          {t("ui.cancel")}
-        </button>
-        <button
-          className="btn primary"
-          disabled={busy}
-          onClick={() => void onConfirm()}
-        >
-          {t(busy ? "ui.resettingOutputTemplate" : "ui.confirmResetTemplate")}
-        </button>
-      </div>
-    </dialog>
-  );
-}
-
-function TemplateEditor({
-  template,
-  configured,
-  returnToBatch,
-  onReturn,
-  busy,
-  onReset,
-  onSave,
-}: {
-  template: Template;
-  configured: boolean;
-  returnToBatch: boolean;
-  onReturn: () => void;
-  busy: boolean;
-  onReset: () => Promise<boolean>;
-  onSave: (t: Template) => Promise<void>;
-}) {
-  const { t } = useI18n();
-  const [confirmReset, setConfirmReset] = useState(false);
-  const [draft, setDraft] = useState(() =>
-    initialTemplateDraft(template, configured),
-  );
-  const dirty = JSON.stringify(draft) !== JSON.stringify(template);
-  const valid = validTemplateDraft(draft);
-  const patch = (id: string, p: Partial<Column>) =>
-    setDraft((old) => ({
-      ...old,
-      columns: old.columns.map((c) => (c.id === id ? { ...c, ...p } : c)),
-    }));
-  function move(i: number, delta: number) {
-    const next = [...draft.columns];
-    [next[i], next[i + delta]] = [next[i + delta], next[i]];
-    setDraft({ ...draft, columns: next });
-  }
-  return (
-    <>
-      <div className="page-heading">
-        <div>
-          <div className="eyebrow">
-            {t("ui.defineACommonStructureForYourData")}
-          </div>
-          <h1>{t("ui.standardTemplate")}</h1>
-          <p>{t("ui.everySourceIsExportedUsingTheseColumns")}</p>
-        </div>
-        <div className="button-group">
-          {returnToBatch && (
-            <button className="btn subtle" disabled={busy} onClick={onReturn}>
-              <ArrowLeft size={16} />
-              {t("ui.backToImport")}
-            </button>
-          )}
-          <button
-            className="btn secondary"
-            disabled={busy}
-            onClick={() => setConfirmReset(true)}
-          >
-            <RefreshCw size={16} />
-            {t("ui.resetOutputTemplate")}
-          </button>
-          <button
-            className="btn primary"
-            disabled={busy || (configured && !dirty) || !valid}
-            onClick={() =>
-              void onSave({
-                ...draft,
-                name: draft.name.trim(),
-                columns: draft.columns.map((c) => ({
-                  ...c,
-                  name: c.name.trim(),
-                })),
-              })
-            }
-          >
-            <Save size={16} />
-            {t(returnToBatch ? "ui.saveAndReturn" : "ui.saveTemplate")}
-          </button>
-        </div>
-      </div>
-      {!configured && (
-        <div className="panel template-example">
-          <div className="section-heading">
-            <div>
-              <h2>{t("ui.salesTemplateExample")}</h2>
-              <p>{t("ui.templateExampleExplanation")}</p>
-            </div>
-          </div>
-          <strong>
-            {t("ui.exampleValue", { value: SALES_TEMPLATE_EXAMPLE.name })}
-          </strong>
-          <div className="example-columns">
-            {SALES_TEMPLATE_EXAMPLE.columns.map((c) => (
-              <span key={c.id}>{t("ui.exampleValue", { value: c.name })}</span>
-            ))}
-          </div>
-        </div>
-      )}
-      <div className="panel section-panel template-panel">
-        <label className="template-name-label">
-          {t("ui.templateName")}
-          <input
-            value={draft.name}
-            placeholder={t("ui.exampleValue", {
-              value: SALES_TEMPLATE_EXAMPLE.name,
-            })}
-            maxLength={80}
-            onChange={(e) => setDraft({ ...draft, name: e.target.value })}
-          />
-        </label>
-        <table>
-          <thead>
-            <tr>
-              <th className="col-order">{t("ui.order")}</th>
-              <th>{t("ui.targetColumnName")}</th>
-              <th>{t("ui.dataType")}</th>
-              <th>{t("ui.required")}</th>
-              <th>{t("ui.reorder")}</th>
-            </tr>
-          </thead>
-          <tbody>
-            {draft.columns.map((c, i) => (
-              <tr key={c.id}>
-                <td className="order-index">
-                  {String(i + 1).padStart(2, "0")}
-                </td>
-                <td>
-                  <input
-                    aria-label={t("ui.columnName", { p0: i + 1 })}
-                    value={c.name}
-                    placeholder={t("ui.exampleValue", {
-                      value:
-                        SALES_TEMPLATE_EXAMPLE.columns[i]?.name ||
-                        t("ui.targetColumnName"),
-                    })}
-                    maxLength={80}
-                    onChange={(e) => patch(c.id, { name: e.target.value })}
-                  />
-                </td>
-                <td>
-                  <select
-                    aria-label={t("ui.dataType211", { p0: c.name })}
-                    value={c.type}
-                    onChange={(e) =>
-                      patch(c.id, { type: e.target.value as Column["type"] })
-                    }
-                  >
-                    <option value="text">
-                      {t("ui.textPreserveLeadingZeros")}
-                    </option>
-                    <option value="number">{t("ui.number")}</option>
-                    <option value="date">{t("ui.date")}</option>
-                  </select>
-                </td>
-                <td>
-                  <label className="checkbox-label">
-                    <input
-                      aria-label={t("ui.required213", { p0: c.name })}
-                      type="checkbox"
-                      checked={c.required}
-                      onChange={(e) =>
-                        patch(c.id, { required: e.target.checked })
-                      }
-                    />
-                    {t("ui.required")}
-                  </label>
-                </td>
-                <td>
-                  <div className="button-group">
-                    <button
-                      className="icon-btn"
-                      disabled={i === 0}
-                      aria-label={t("ui.moveUp", { p0: c.name })}
-                      onClick={() => move(i, -1)}
-                    >
-                      <ArrowUp size={15} />
-                    </button>
-                    <button
-                      className="icon-btn"
-                      disabled={i === draft.columns.length - 1}
-                      aria-label={t("ui.moveDown", { p0: c.name })}
-                      onClick={() => move(i, 1)}
-                    >
-                      <ArrowDown size={15} />
-                    </button>
-                    <button
-                      className="icon-btn"
-                      disabled={draft.columns.length === 1}
-                      aria-label={t("ui.deleteColumn", { p0: c.name })}
-                      onClick={() => {
-                        if (
-                          confirm(
-                            t("ui.removeFromTheTemplateThisTakesEffect", {
-                              p0: c.name,
-                            }),
-                          )
-                        )
-                          setDraft({
-                            ...draft,
-                            columns: draft.columns.filter((x) => x.id !== c.id),
-                          });
-                      }}
-                    >
-                      <Trash2 size={15} />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        <button
-          className="btn secondary add-column"
-          disabled={draft.columns.length >= 100}
-          onClick={() =>
-            setDraft({
-              ...draft,
-              columns: [
-                ...draft.columns,
-                {
-                  id: crypto.randomUUID(),
-                  name: "",
-                  type: "text",
-                  required: false,
-                },
-              ],
-            })
-          }
-        >
-          <Plus size={16} />
-          {t("ui.addTargetColumn")}
-        </button>
-        {!valid &&
-          (draft.name !== "" || draft.columns.some((c) => c.name !== "")) && (
-            <p className="inline-error">
-              {t("ui.templateAndColumnNamesCannotBeEmpty")}
-            </p>
-          )}
-      </div>
-      <div className="template-footnote">
-        <CircleAlert size={16} />
-        <p>{t("ui.afterSavingTheTemplateConfirmThisBatch")}</p>
-      </div>
-      {confirmReset && (
-        <TemplateResetDialog
-          busy={busy}
-          onCancel={() => setConfirmReset(false)}
-          onConfirm={async () => {
-            if (await onReset())
-              setDraft(initialTemplateDraft(SALES_TEMPLATE_EXAMPLE, false));
-            setConfirmReset(false);
-          }}
-        />
-      )}
-    </>
-  );
-}
 createRoot(document.getElementById("root")!).render(
   <I18nProvider>
     <App />

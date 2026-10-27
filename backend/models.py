@@ -1,4 +1,6 @@
 from typing import Literal
+import json
+import uuid
 from .i18n import DomainError
 from pydantic import BaseModel, Field, model_validator
 
@@ -56,17 +58,50 @@ class Rule(BaseModel):
         return self
 
 
+class TemplateFile(BaseModel):
+    format: Literal['sales-sheet-merger.output-template']
+    version: Literal[1] = 1
+    id: str = Field(min_length=1, max_length=80, pattern=r'^[A-Za-z0-9_-]+$')
+    template: Template
+
+    @model_validator(mode='after')
+    def normalize_names(self):
+        self.template.name = self.template.name.strip()
+        for column in self.template.columns:
+            column.name = column.name.strip()
+        return self
+
+
+class SavedTemplate(TemplateFile):
+    file_name: str = Field(default='', max_length=255)
+
+
 class Library(BaseModel):
     version: Literal[1] = 1
     template: Template
     # A legacy/default template is not evidence of explicit user configuration.
     template_configured: bool = False
     rules: list[Rule] = Field(default_factory=list, max_length=500)
+    templates: list[SavedTemplate] = Field(default_factory=list, max_length=100)
+
+    @model_validator(mode='before')
+    @classmethod
+    def migrate_single_template(cls, value):
+        if (isinstance(value, dict) and 'templates' not in value
+                and 'template' in value and value.get('template_configured') is True):
+            template = value['template']
+            content = template.model_dump() if isinstance(template, Template) else template
+            template_id = str(uuid.uuid5(uuid.NAMESPACE_URL, json.dumps(content, sort_keys=True, ensure_ascii=False)))
+            return {**value, 'templates': [{'format': 'sales-sheet-merger.output-template',
+                    'version': 1, 'id': template_id, 'template': content, 'file_name': ''}]}
+        return value
 
     @model_validator(mode='after')
     def unique_rules(self):
         if len({r.id for r in self.rules}) != len(self.rules):
             raise DomainError('duplicate_rules')
+        if len({t.id for t in self.templates}) != len(self.templates):
+            raise DomainError('duplicate_templates')
         return self
 
 

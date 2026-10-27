@@ -11,6 +11,7 @@ credentials*
 *token*
 library.json
 library.json.new
+*.sales-template.json
 instance.lock
 *.db
 *.xlsx
