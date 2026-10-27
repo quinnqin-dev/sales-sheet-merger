@@ -12,36 +12,15 @@
 - **导出**：生成只含有效合并记录的单工作表 `.xlsx` 文件。
 - **语言**：默认英文，可切换简体中文。
 
-[安装启动](#安装启动) · [部署到 Render](#部署到-render) · [使用指南](#使用指南) · [常见问题](#常见问题) · [开发](#开发)
+[打开应用](https://sheet-merger-80c7.onrender.com/) · [使用指南](#使用指南) · [常见问题](#常见问题) · [源代码](#源代码)
 
-## 安装启动
+## 打开应用
 
-项目附带的安装和启动脚本适用于 **macOS**。先安装 **Node.js 22.18+ 和 npm**，下载或克隆仓库，然后在项目目录打开终端：
+### [打开归表 →](https://sheet-merger-80c7.onrender.com/)
 
-```sh
-./setup.sh
-./start.command
-```
+无需安装或注册账号。建议使用最新版浏览器，安卓系统可使用 Chrome 或 Edge。表格在浏览器内处理，不会上传到应用服务器。
 
-安装后也可以双击 `start.command`，浏览器会打开 <http://127.0.0.1:4173>。首次启动缺少依赖或前端构建时，启动器会自动执行安装。安装依赖需要联网；页面加载完成后，表格处理不需要网络连接。
-
-使用本地预览时保持启动终端打开。**关闭网页不会停止预览服务。** 可以在终端按 **Control-C** 停止服务；停止预览不会删除浏览器中保存的模板、规则或上次批次。需要删除这些数据时，请使用应用内的**清除浏览器数据**。
-
-## 部署到 Render
-
-仓库中的 [Render Blueprint](render.yaml) 会把应用部署为静态站点。构建不需要 Python、启动命令、持久磁盘、数据库或环境变量。
-
-在 Render 控制台选择 **New → Blueprint**，连接这个仓库并应用检测到的 `render.yaml`。Render 使用以下设置：
-
-| 设置 | 值 |
-| --- | --- |
-| 运行时 | Static |
-| 构建命令 | `npm --prefix frontend ci && npm --prefix frontend run build` |
-| 发布目录 | `frontend/dist` |
-
-Render 通过 CDN 提供应用文件。源表格保留在浏览器中，不会发送给 Render；部署后的内容安全策略也会阻止应用发起网络连接。模板和规则按浏览器及站点地址分别保存，因此先使用 `onrender.com` 域名、之后切换自定义域名时，两者不会共享浏览器数据。如果需要迁移，请先导出规则库。
-
-当前版本的 Android Chrome 或 Edge 也可以使用。文件可从安卓文件选择器导入，合并后的 Excel 会按普通下载方式保存。复杂的模板编辑在平板或电脑上更方便。
+复杂的模板编辑更适合在电脑或平板上进行。手机上可以从安卓文件选择器导入文件，并按普通下载方式保存合并结果。
 
 ## 使用指南
 
@@ -169,40 +148,6 @@ Render 通过 CDN 提供应用文件。源表格保留在浏览器中，不会�
 
 为兼容旧版本，模板文件的格式标识保留原值；用户已保存的模板和规则不会被自动改名。
 
-## 开发
+## 源代码
 
-当前网页应用使用 **React、TypeScript、Vite**。表格解析、转换、合并和导出在浏览器 Web Worker 中运行，浏览器数据保存在 IndexedDB。前端依赖通过 `frontend/package-lock.json` 固定。
-
-安装前端依赖后，启动开发服务器：
-
-```sh
-npm --prefix frontend ci
-npm --prefix frontend run dev
-```
-
-Vite 在 <http://127.0.0.1:5173> 提供开发页面。当前前端不调用 API；Render 直接发布 `frontend/dist` 中的生产构建。
-
-`backend/` 目录保留了早期的 FastAPI 实现，用于兼容性检查和本地参考。当前网页应用和 Render 部署都不使用该后端，其 Python 依赖锁定在 `requirements.lock`。
-
-在项目目录执行检查。前端测试需要 Node.js 22.18+：
-
-```sh
-npm --prefix frontend run build
-npm --prefix frontend run format:check
-npm --prefix frontend test
-npm --prefix frontend run test:browser -- --project=chromium
-```
-
-如尚未安装 Playwright 的 Chromium，请先运行：
-
-```sh
-npm --prefix frontend exec playwright install chromium
-```
-
-修改保留的 Python 后端时，再运行：
-
-```sh
-.venv/bin/python -m pytest -q -s
-```
-
-中英文文案共用 `shared/locales/` 目录，两份语言文件的键名和插值参数应保持一致。测试覆盖和实际限制见 [VALIDATION.md](VALIDATION.md)。
+本仓库面向贡献者和代码审阅者。普通用户请直接使用[在线应用](https://sheet-merger-80c7.onrender.com/)，无需在本地安装项目。架构、本地开发、Render 部署和测试命令见 [DEVELOPMENT.md](DEVELOPMENT.md)。

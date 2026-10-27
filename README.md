@@ -12,36 +12,15 @@ Use it for student grades, inventory lists, order records, or any tables that ne
 - **Export:** one `.xlsx` worksheet containing valid merged records.
 - **Languages:** English by default, with a Simplified Chinese switch.
 
-[Get started](#get-started) · [Deploy on Render](#deploy-on-render) · [User guide](#user-guide) · [Common questions](#common-questions) · [Development](#development)
+[Open the app](https://sheet-merger-80c7.onrender.com/) · [User guide](#user-guide) · [Common questions](#common-questions) · [Source code](#source-code)
 
-## Get started
+## Open the app
 
-The included setup and launcher scripts are for **macOS**. Install **Node.js 22.18+ with npm** first, then download or clone this repository and open a terminal in the project directory:
+### [Open Sheet Merger →](https://sheet-merger-80c7.onrender.com/)
 
-```sh
-./setup.sh
-./start.command
-```
+No installation or account is required. Use a current browser, including Chrome or Edge on Android. Spreadsheets are processed inside the browser and are not uploaded to the application server.
 
-After setup, you can also double-click `start.command`. It opens <http://127.0.0.1:4173> in your browser. If dependencies or the frontend build are missing, the launcher runs setup automatically. Installation requires internet access; once the page has loaded, spreadsheet processing works without a network connection.
-
-Keep the launch terminal open while using the local preview. **Closing the browser does not stop it.** You can stop it with **Control-C**; stopping the preview does not remove templates, rules, or the last saved batch from this browser. Use **Clear browser data** in the app when you want to remove that local data.
-
-## Deploy on Render
-
-The repository includes a [Render Blueprint](render.yaml) for deploying the app as a static site. The build does not require Python, a start command, a persistent disk, a database, or environment variables.
-
-In the Render Dashboard, choose **New → Blueprint**, connect this repository, and apply the detected `render.yaml`. Render will use:
-
-| Setting | Value |
-| --- | --- |
-| Runtime | Static |
-| Build command | `npm --prefix frontend ci && npm --prefix frontend run build` |
-| Publish directory | `frontend/dist` |
-
-Render serves the application files from its CDN. Source spreadsheets stay in the browser and are not sent to Render; the deployed Content Security Policy also blocks network connections from the loaded app. Templates and rules are stored separately by browser and site address, so an `onrender.com` domain and a later custom domain do not share the same browser data. Export the rule library before changing domains if you need to move it.
-
-The app also works in current Android Chrome or Edge. Files can be selected from the Android file picker, and merged Excel workbooks are downloaded normally. Complex template editing is easier on a tablet or desktop.
+The app works best on desktop or tablet for complex template editing. On a phone, import files from the Android file picker and download the merged workbook normally.
 
 ## User guide
 
@@ -169,40 +148,6 @@ Files are processed in the browser. Source files are never overwritten and sprea
 
 The template-file format identifiers are retained for compatibility with earlier versions; saved customer templates and rules are not renamed.
 
-## Development
+## Source code
 
-The active web app uses **React**, **TypeScript**, and **Vite**. Spreadsheet parsing, conversion, merging, and export run in a browser Web Worker, with IndexedDB storing browser data. Frontend dependencies are pinned in `frontend/package-lock.json`.
-
-After installing frontend dependencies, start the development server:
-
-```sh
-npm --prefix frontend ci
-npm --prefix frontend run dev
-```
-
-Vite serves the development app at <http://127.0.0.1:5173>. The current frontend does not call an API; Render serves the production build directly from `frontend/dist`.
-
-The `backend/` directory contains the earlier FastAPI implementation, retained for compatibility checks and local reference. It is not used by the browser app or by the Render deployment. Its Python dependencies are locked in `requirements.lock`.
-
-Run checks from the project directory. Frontend tests require Node.js 22.18+:
-
-```sh
-npm --prefix frontend run build
-npm --prefix frontend run format:check
-npm --prefix frontend test
-npm --prefix frontend run test:browser -- --project=chromium
-```
-
-Install the Playwright Chromium browser first if needed:
-
-```sh
-npm --prefix frontend exec playwright install chromium
-```
-
-When changing the retained backend, also run:
-
-```sh
-.venv/bin/python -m pytest -q -s
-```
-
-Shared English and Chinese messages live in `shared/locales/`. Keep message keys and interpolation placeholders consistent between both catalogs. See [VALIDATION.md](VALIDATION.md) for test coverage and practical limitations.
+This public repository is for contributors and reviewers. End users should use the [online app](https://sheet-merger-80c7.onrender.com/) rather than setting up the project locally. Architecture, local setup, Render deployment, and test commands are documented in [DEVELOPMENT.md](DEVELOPMENT.md).
