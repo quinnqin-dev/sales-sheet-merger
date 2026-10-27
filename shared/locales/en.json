@@ -377,7 +377,7 @@
   "templates.confirmDescription": "Select a saved template and review its columns before configuring source rules.",
   "templates.choose": "Output template for this batch",
   "templates.choosePlaceholder": "Select a template…",
-  "templates.notSelected": "Not selected for this batch",
+  "templates.notSelected": "Not selected",
   "templates.selectHint": "Select a template above, or create a new one. Each new batch needs its own selection.",
   "templates.confirmNext": "Confirm template, next",
   "templates.manage": "Open template library",
