@@ -315,10 +315,8 @@
   "ui.newFieldName": "New field {count}",
   "ui.brandSubtitle": "SALES WORKSPACE",
   "ui.outputTemplateNotConfigured": "Not configured",
-  "ui.outputTemplateRequired": "Output template not configured",
-  "ui.outputTemplateRequiredDescription": "Select a saved output template for this batch, or go to Output template to create one. Imported files and worksheet selections will be kept.",
-  "ui.goToOutputTemplate": "Go to output template",
-  "ui.notNow": "Not now",
+  "ui.outputTemplateRequired": "No output template selected",
+  "ui.outputTemplateRequiredDescription": "Choose a saved template or create a new one to continue. Imported files and worksheet selections will be kept.",
   "ui.saveAndReturn": "Save and return",
   "ui.salesTemplateExample": "Sales template example",
   "ui.templateExampleExplanation": "Gray examples are placeholders only. Enter the template name and target column names yourself before saving.",
@@ -411,5 +409,6 @@
   "guide.preview.body": "Click Preview converted data. Check the first 20 records: make sure IDs, names, subjects, and scores are in the right columns.",
   "guide.preview.tip": "If anything is wrong, return to the source rules. Change the template through step 2; changing it requires the mappings to be confirmed again.",
   "guide.preview.alt": "Preview step showing correctly mapped student IDs, names, subjects, scores, and passed checks.",
-  "guide.preview.caption": "4. Check a sample before processing all selected records."
+  "guide.preview.caption": "4. Check a sample before processing all selected records.",
+  "templates.select": "Select template"
 }

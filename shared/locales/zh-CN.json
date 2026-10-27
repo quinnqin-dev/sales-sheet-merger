@@ -315,10 +315,8 @@
   "ui.newFieldName": "新字段 {count}",
   "ui.brandSubtitle": "销售工作台",
   "ui.outputTemplateNotConfigured": "尚未配置",
-  "ui.outputTemplateRequired": "还未填写输出模板",
-  "ui.outputTemplateRequiredDescription": "请为本批次选择已保存的输出模板，也可以前往“输出模板”新建。已导入的文件和工作表选择会保留。",
-  "ui.goToOutputTemplate": "前往输出模板",
-  "ui.notNow": "暂不填写",
+  "ui.outputTemplateRequired": "还未选择输出模板",
+  "ui.outputTemplateRequiredDescription": "选择已有模板，或新建一份模板后继续。已导入的文件和工作表选择会保留。",
   "ui.saveAndReturn": "保存并返回",
   "ui.salesTemplateExample": "销售模板示例",
   "ui.templateExampleExplanation": "灰色内容仅为占位示例，不是实际输入。请自行填写模板名称和目标列名后保存。",
@@ -341,7 +339,7 @@
   "guide.import.alt": "已导入两份学生成绩表，勾选两个工作表，共 24 条待合并记录。",
   "guide.import.caption": "① 导入两份表，确认需要合并的工作表。",
   "guide.template.title": "选择并确认输出模板",
-  "guide.template.body": "从模板库选择一份模板并检查列配置。每个新批次都需要手选；只有未选择模板就点“下一步”时，才会显示未配置提示。",
+  "guide.template.body": "从模板库选择一份模板并检查列配置。每个新批次都需要手选；只有未选择模板就点“下一步”时，才会显示未选择提示。",
   "guide.template.tip": "本例选择 Student grades 模板，包含 Student ID、Name、Subject 和数字类型的 Score，再点“确认模板，下一步”。",
   "guide.template.alt": "确认模板步骤中，选择模板库里的 Student grades，并展示四个输出列及其类型。",
   "guide.template.caption": "② 为本批次选择模板，确认输出列。",
@@ -411,5 +409,6 @@
   "guide.preview.body": "点击“预览转换结果”，查看前 20 条记录，检查学号、姓名、科目和分数是否对应正确。",
   "guide.preview.tip": "发现问题可以返回调整规则。需要换模板时回到第二步；更换后，来源映射需要重新确认。",
   "guide.preview.alt": "预览检查步骤展示正确对应的学号、姓名、科目、分数及通过提示。",
-  "guide.preview.caption": "④ 先检查示例，再处理全部记录。"
+  "guide.preview.caption": "④ 先检查示例，再处理全部记录。",
+  "templates.select": "选择模板"
 }

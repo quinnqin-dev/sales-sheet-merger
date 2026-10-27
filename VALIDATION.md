@@ -79,3 +79,7 @@ Additional regression: when a different output template was active at file impor
 ## Template prompt on Next only
 
 The required-template prompt now opens only from the confirmation-step Next action when no valid template is selected. Entering step 2, returning from template management, and returning through the sidebar or guide do not trigger it. The Next button remains enabled without a selection so it can explain what is missing. Browser checks verified entry with zero open dialogs, an empty selection with an enabled Next button, the prompt after clicking Next, dismissal preserving step 2, and a selected template advancing to step 3 without a dialog. The apply-template API boundary was controlled in this focused check to avoid changing the existing preview configuration. All 13 frontend tests and 14 backend catalog/internationalization checks passed; production build and diff checks passed.
+
+## Choose or create from the missing-template prompt
+
+The prompt now says “No output template selected” and provides Select template / New template actions in both languages. Selection closes the dialog and focuses the current selector; creation opens a blank editor directly, even when the library contains saved templates. Browser checks confirmed both actions, no language switcher in the dialog, no prompt on step entry, and imported-file/worksheet preservation after returning from the blank editor. The 13 frontend tests, 14 backend internationalization checks, and production build passed.

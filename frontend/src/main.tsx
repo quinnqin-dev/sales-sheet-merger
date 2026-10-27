@@ -1700,10 +1700,19 @@ function App() {
       )}
       {templatePrompt && (
         <TemplateRequiredDialog
-          onClose={() => setTemplatePrompt(false)}
-          onConfigure={() => {
+          onClose={() => {
             setTemplatePrompt(false);
-            manageTemplates(null);
+            requestAnimationFrame(() =>
+              document
+                .querySelector<HTMLSelectElement>(
+                  ".batch-template-picker select",
+                )
+                ?.focus(),
+            );
+          }}
+          onCreate={() => {
+            setTemplatePrompt(false);
+            manageTemplates("");
           }}
         />
       )}
@@ -2175,10 +2184,10 @@ function RuleEditor({
 }
 function TemplateRequiredDialog({
   onClose,
-  onConfigure,
+  onCreate,
 }: {
   onClose: () => void;
-  onConfigure: () => void;
+  onCreate: () => void;
 }) {
   const { t } = useI18n();
   const ref = useRef<HTMLDialogElement>(null);
@@ -2209,10 +2218,10 @@ function TemplateRequiredDialog({
       </p>
       <div className="button-group">
         <button className="btn secondary" onClick={onClose}>
-          {t("ui.notNow")}
+          {t("templates.select")}
         </button>
-        <button className="btn primary" autoFocus onClick={onConfigure}>
-          {t("ui.goToOutputTemplate")}
+        <button className="btn primary" autoFocus onClick={onCreate}>
+          {t("templates.new")}
           <ArrowRight size={16} />
         </button>
       </div>

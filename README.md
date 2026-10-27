@@ -48,7 +48,7 @@ Expand a file to preview the source data. If its column names are not on the fir
 
 ### 2. Select and confirm an output template
 
-Every new batch starts with no template selected. Entering this step shows the template list directly. If you click **Confirm template, next** without selecting a template, the **Output template not configured** prompt appears. Click **Not now** to stay and choose, or **Go to output template** to create one.
+Every new batch starts with no template selected. Entering this step shows the template list directly. If you click **Confirm template, next** without selecting a template, the **No output template selected** prompt appears. Click **Select template** to return to the current list, or **New template** to open a blank template form directly.
 
 Choose **Student grades** and review its four columns: **Student ID**, **Name**, **Subject** (Text), and **Score** (Number). Click **Confirm template, next**.
 
