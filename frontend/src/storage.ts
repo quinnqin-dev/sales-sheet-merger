@@ -109,8 +109,8 @@ export async function restore() {
     const jobs = await db.getAllFromIndex("jobs", "batch", workspace.batch);
     for (const job of jobs) {
       if (job.status === "running") {
-        job.status = "interrupted";
-        job.error_code = "browser.interrupted";
+        job.status = job.summary && job.phase_code === "phase_exporting" ? "export-failed" : "interrupted";
+        job.error_code = job.status === "export-failed" ? "browser.exportError" : "browser.interrupted";
         job.output = undefined;
         await db.put("jobs", job);
       }

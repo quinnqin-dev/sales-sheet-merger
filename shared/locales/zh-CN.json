@@ -437,5 +437,13 @@
   "offline.updateBusy": "有新版本，合并完成后可刷新更新。",
   "offline.updateAvailable": "有新版本，点此刷新。",
   "offline.refresh": "刷新更新",
-  "offline.ready": "已可离线使用"
+  "offline.ready": "已可离线使用",
+  "memory.title": "当前设备处理较大批次可能内存不足",
+  "memory.body": "建议使用桌面端合并，或分批处理（每批不超过 5 万行）。也可以选择继续。",
+  "memory.estimate": "预计工作内存：{size} MiB（行数 × 目标列数 × 256 字节，实际用量可能不同）。",
+  "memory.back": "返回调整",
+  "memory.continue": "继续",
+  "browser.exportError": "导出未完成，已处理的行仍保存在本机。请关闭其他标签页后重试导出，或减少本批次数据量。",
+  "browser.retryExport": "重试导出",
+  "browser.exportFailedTitle": "行处理已完成，导出需要重试"
 }

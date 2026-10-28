@@ -1,4 +1,3 @@
-import ExcelJS from "exceljs";
 import { Decimal } from "decimal.js";
 import type {
   RunRequest,
@@ -74,79 +73,17 @@ export async function preview(prepared: Prepared, locale: Locale) {
   }
   return { rows, total: prepared.total };
 }
-export async function exportWorkbook(job: StoredJob) {
-  const db = await database(),
-    book = new ExcelJS.Workbook();
-  const sheet = book.addWorksheet(translate("sheet_details", {}, job.locale), {
-    views: [{ state: "frozen", ySplit: 1 }],
-  });
-  sheet.columns = job.template.columns.map((c) => ({
-    header: c.name.replace(
-      /[\x00-\x08\x0b\x0c\x0e-\x1f]/g,
-      (c) => "\\u" + c.charCodeAt(0).toString(16).padStart(4, "0"),
-    ),
-    width: 20,
-  }));
-  sheet.getRow(1).eachCell((cell) => {
-    cell.font = { bold: true, color: { argb: "FFFFFFFF" } };
-    cell.fill = {
-      type: "pattern",
-      pattern: "solid",
-      fgColor: { argb: "FF214C40" },
-    };
-  });
-  // Bounded IDB pages avoid keeping a second copy of all result rows in memory.
-  let after = 0;
-  while (true) {
-    const tx = db.transaction("rows");
-    let cursor = await tx.store.openCursor(
-      IDBKeyRange.bound(
-        [job.id, after],
-        [job.id, Number.MAX_SAFE_INTEGER],
-        true,
-        false,
-      ),
-    );
-    const page: StoredRow[] = [];
-    while (cursor && page.length < 1000) {
-      page.push(cursor.value);
-      cursor = await cursor.continue();
-    }
-    await tx.done;
-    if (!page.length) break;
-    for (const row of page) {
-      after = row.index;
-      if (row.kind !== "valid") continue;
-      const output = sheet.addRow(
-        row.values.map((value, i) => {
-          if (value == null) return null;
-          const type = job.template.columns[i].type;
-          if (type === "number") return Number(value);
-          if (type === "date") {
-            const date = new Date(0);
-            const [y, m, d] = String(value).split("-").map(Number);
-            date.setUTCFullYear(y, m - 1, d);
-            return date;
-          }
-          // Strings, including '=...', are literal strings in ExcelJS.
-          return String(value);
-        }),
-      );
-      job.template.columns.forEach((c, i) => {
-        if (c.type === "number")
-          output.getCell(i + 1).numFmt = "#,##0.############";
-        if (c.type === "date") output.getCell(i + 1).numFmt = "yyyy-mm-dd";
-      });
-    }
-  }
-  sheet.autoFilter = {
-    from: { row: 1, column: 1 },
-    to: { row: sheet.rowCount, column: job.template.columns.length },
-  };
-  const buffer = await book.xlsx.writeBuffer();
-  return new Blob([new Uint8Array(buffer)], {
-    type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-  });
+export {exportWorkbook} from './writer.ts';
+import {exportWorkbook} from './writer.ts';
+export async function finishExport(job:StoredJob,write=exportWorkbook) {
+ const db=await database();
+ try{
+  job.output=await write(job);job.status='done';job.phase_code='phase_done';delete job.error_code;delete job.error_params;
+  await db.put('jobs',job);
+ }catch{
+  job.output=undefined;job.status='export-failed';job.error_code='browser.exportError';job.error_params={};
+  try{await db.put('jobs',job);}catch{/* The saved summary and rows remain retryable after reload. */}
+ }
 }
 export async function runJob(job: StoredJob, prepared: Prepared) {
   const db = await database();
@@ -264,11 +201,7 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
     }
     job.phase_code = "phase_exporting";
     await db.put("jobs", job);
-    job.output = await exportWorkbook(job);
-    job.status = "done";
-    job.phase_code = "phase_done";
-    // Export and done status commit together. No partial workbook is exposed.
-    await db.put("jobs", job);
+    await finishExport(job);
   } catch (e) {
     job.status = "failed";
     job.output = undefined;

@@ -1,3 +1,5 @@
+import { MemoryWarning } from "./MemoryWarning";
+import { memoryEstimate } from "./preflight";
 import { OfflineStatus } from "./OfflineStatus";
 import {
   I18nProvider,
@@ -206,6 +208,7 @@ function BrowserDataDialog({
 
 function App() {
   const { t } = useI18n();
+  const [memoryWarning,setMemoryWarning]=useState(false);
   const [ready, setReady] = useState(false);
   const [dataDialog, setDataDialog] = useState<"batch" | "all" | null>(null);
   const [saveState, setSaveState] = useState<"saving" | "saved" | "failed">(
@@ -293,15 +296,9 @@ function App() {
   useEffect(() => {
     if (!ready) return;
     setSaveState("saving");
-    const timer = setTimeout(() => {
-      local("saveWorkspace", snapshot())
-        .then(() => setSaveState("saved"))
-        .catch((e) => {
-          setSaveState("failed");
-          setError(messageFromError(e));
-        });
-    }, 150);
-    return () => clearTimeout(timer);
+    local("saveWorkspace", snapshot())
+      .then(()=>setSaveState("saved"))
+      .catch(e=>{setSaveState("failed");setError(messageFromError(e));});
   }, [
     ready,
     batch,
@@ -354,7 +351,7 @@ function App() {
     };
   }, [job?.id, job?.status]);
   useEffect(() => {
-    if (job?.status !== "done") return;
+    if (!job || !["done","export-failed"].includes(job.status)) return;
     let stopped = false;
     setLoadingRows(true);
     local("getRows", { id: job.id, kind, page, duplicates: duplicatesOnly })
@@ -487,7 +484,9 @@ function App() {
       setStep(4);
     });
   }
-  async function start() {
+  const estimate=memoryEstimate(rowCount,template?.columns.length??0,navigator);
+  async function start(accepted=false) {
+    if(!accepted&&estimate.warn){setMemoryWarning(true);return;}
     await action(msg("ui.startingMerge"), async () => {
       setKind("valid");
       setPage(1);
@@ -624,6 +623,7 @@ function App() {
     );
   return (
     <div className="app-shell">
+      {memoryWarning&&<MemoryWarning bytes={estimate.bytes} onCancel={()=>setMemoryWarning(false)} onContinue={()=>{setMemoryWarning(false);void start(true);}}/>}
       {dataDialog && (
         <BrowserDataDialog
           all={dataDialog === "all"}
@@ -1339,7 +1339,7 @@ function App() {
                             <CheckCheck size={26} />
                           </span>
                           <div>
-                            <h2>{t("ui.mergeCompleteYourResultIsReady")}</h2>
+                            <h2>{t(job.status==="export-failed"?"browser.exportFailedTitle":"ui.mergeCompleteYourResultIsReady")}</h2>
                             <p>
                               {t("ui.resultSources", {
                                 files: files.length,
@@ -1354,15 +1354,16 @@ function App() {
                               void action(
                                 msg("browser.preparingDownload"),
                                 async () => {
-                                  await downloadResult(job.id);
+                                  if(job.status==="export-failed")setJob(await local("retryExport",{id:job.id}));else await downloadResult(job.id);
                                 },
                               )
                             }
                           >
                             <Download size={17} />
-                            {t("ui.downloadMergedExcel")}
+                            {t(job.status==="export-failed"?"browser.retryExport":"ui.downloadMergedExcel")}
                           </button>
                         </div>
+                        {job.status==="export-failed"&&<p role="alert" className="alert error">{errorMessage(job)}</p>}
                         <div className="result-stats">
                           {[
                             { label: t("ui.rowsRead"), n: job.summary.read },

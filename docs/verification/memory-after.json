@@ -1,0 +1,35 @@
+{
+  "status": "done",
+  "summary": {
+    "read": 100000,
+    "valid": 100000,
+    "issues": 0,
+    "blank": 0,
+    "duplicate_rows": 0,
+    "duplicate_extra": 0,
+    "duplicate_groups": 0,
+    "totals": {
+      "c1": "10000",
+      "c2": "10000",
+      "c3": "10000",
+      "c4": "10000",
+      "c5": "10000",
+      "c6": "10000",
+      "c7": "10000"
+    },
+    "sources": [
+      {
+        "file": "scale.csv",
+        "sheet": "CSV",
+        "read": 100000,
+        "valid": 100000,
+        "issues": 0,
+        "blank": 0
+      }
+    ]
+  },
+  "seconds": 61.62670000000298,
+  "bytes": 2649266,
+  "workerHeapAndBackingPeakBytes": 116522275,
+  "sampleMs": 50
+}

@@ -21,7 +21,7 @@ import {
   templateSchema,
   validateLibrary,
 } from "./validation.ts";
-import { prepare, preview, runJob } from "./processing.ts";
+import { prepare, preview, runJob, finishExport } from "./processing.ts";
 
 let active = false;
 const idle = () => {
@@ -250,6 +250,12 @@ export const operations = {
       active = false;
     });
     return publicJob(job);
+  },
+  retryExport: async ({id}:{id:string})=>{
+    idle();const db=await database(),job=await db.get('jobs',id);
+    if(!job?.summary||job.status!=='export-failed')throw new LocalizedError('job_incomplete');
+    job.status='running';job.phase_code='phase_exporting';await db.put('jobs',job);active=true;
+    void finishExport(job).finally(()=>{active=false;});return publicJob(job);
   },
   getJob: async ({ id }: { id: string }) => {
     const job = await (await database()).get("jobs", id);

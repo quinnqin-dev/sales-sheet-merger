@@ -437,5 +437,13 @@
   "offline.updateBusy": "A new version is ready. Refresh after this merge finishes.",
   "offline.updateAvailable": "A new version is available. Refresh to update.",
   "offline.refresh": "Refresh",
-  "offline.ready": "Ready for offline use"
+  "offline.ready": "Ready for offline use",
+  "memory.title": "Large batch on a mobile or low-memory device",
+  "memory.body": "This batch may exceed your device’s memory. Use a desktop, or split it into batches of at most 50,000 rows. You can continue if you prefer.",
+  "memory.estimate": "Estimated working memory: {size} MiB (row count × target columns × 256 bytes; actual usage varies).",
+  "memory.back": "Back to adjust",
+  "memory.continue": "Continue",
+  "browser.exportError": "Export could not finish. Completed rows are still saved. Close other tabs and retry the export, or use a smaller batch.",
+  "browser.retryExport": "Retry export",
+  "browser.exportFailedTitle": "Rows processed; export needs another attempt"
 }
