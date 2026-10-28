@@ -34,9 +34,9 @@ self.addEventListener('fetch', event => {
       } catch { /* Offline: the installed application shell remains available. */ }
       return (await cache.match('/index.html')) || Response.error();
     })());
-  } else if (PRECACHE.includes(url.pathname)) {
+  } else if (PRECACHE.includes(url.pathname) || /^\/assets\/[^/]+-[^/]+\.(js|css)$/.test(url.pathname)) {
     event.respondWith((async () => {
-      const cache = await caches.open(CACHE), hit = await cache.match(request);
+      const cache = await caches.open(CACHE), hit = (await cache.match(request)) || (await caches.match(request));
       if (hit) return hit;
       const response = await fetch(request);
       if (response.ok && response.type !== 'opaque') await cache.put(request, response.clone());

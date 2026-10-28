@@ -452,5 +452,6 @@
   "duplicates.keep-last": "保留末条",
   "duplicates.before": "重复判定沿用归一化后的整行比较。合并后修改策略需要重新运行，合计只计算保留的有效行。",
   "duplicates.result": "策略：{policy} · 额外重复行：{extra} · 已丢弃：{dropped}。如需修改策略，请在下一次启动合并前调整并重新运行。",
-  "duplicates.dropped": "重复 · 已丢弃"
+  "duplicates.dropped": "重复 · 已丢弃",
+  "ui.loading": "正在加载…"
 }

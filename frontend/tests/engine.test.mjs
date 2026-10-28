@@ -1,7 +1,8 @@
+import {inspectSheet} from "../src/reader.ts";
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import * as XLSX from 'xlsx';
-import { readBook, inspectFile, inspectSheet, parseNumber, parseDate, convertRow, duplicateKey, validateRule } from '../src/engine.ts';
+import { readBook, inspectFile, parseNumber, parseDate, convertRow, duplicateKey, validateRule } from '../src/engine.ts';
 import { normal } from '../src/casefold.ts';
 import { documentSchema, validateLibrary } from '../src/validation.ts';
 import { TEMPLATE_FORMAT } from '../src/template-files.ts';

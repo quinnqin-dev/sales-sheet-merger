@@ -73,8 +73,8 @@ export async function preview(prepared: Prepared, locale: Locale) {
   }
   return { rows, total: prepared.total };
 }
-export {exportWorkbook} from './writer.ts';
-import {exportWorkbook} from './writer.ts';
+export const loadWriter=()=>import('./writer.ts');
+export async function exportWorkbook(job:StoredJob){return (await loadWriter()).exportWorkbook(job);}
 export async function finishExport(job:StoredJob,write=exportWorkbook) {
  const db=await database();
  try{

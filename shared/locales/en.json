@@ -452,5 +452,6 @@
   "duplicates.keep-last": "Keep the last row",
   "duplicates.before": "Duplicates use the existing normalized whole-row comparison. Changing this policy after a merge requires another run. Totals use retained valid rows.",
   "duplicates.result": "Policy: {policy} · Additional duplicate rows: {extra} · Dropped: {dropped}. Change the policy before starting another merge to apply it.",
-  "duplicates.dropped": "Duplicate · Dropped"
+  "duplicates.dropped": "Duplicate · Dropped",
+  "ui.loading": "Loading…"
 }

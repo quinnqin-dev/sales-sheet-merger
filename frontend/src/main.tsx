@@ -14,7 +14,7 @@ import {
   LocalizedError,
   type Message,
 } from "./i18n";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowLeft,
@@ -43,8 +43,9 @@ import {
   X,
 } from "lucide-react";
 import "./style.css";
-import { UserGuide } from "./UserGuide";
-import { TemplateManager, TemplateSelector } from "./TemplateManager";
+const UserGuide=lazy(()=>import("./UserGuide").then(m=>({default:m.UserGuide})));
+const TemplateManager=lazy(()=>import("./TemplateManager").then(m=>({default:m.TemplateManager})));
+const TemplateSelector=lazy(()=>import("./TemplateManager").then(m=>({default:m.TemplateSelector})));
 import type { SavedTemplate } from "./template-files";
 import type { Template } from "./template-state";
 import {
@@ -314,6 +315,12 @@ function App() {
     job?.id,
     job?.status,
   ]);
+  useEffect(()=>{
+    if(!ready)return;
+    const warm=()=>{void local("warmReader",undefined).catch(()=>{});};
+    if("requestIdleCallback" in window){const idle=window.requestIdleCallback(warm,{timeout:2000});return()=>window.cancelIdleCallback(idle);}
+    const timer=setTimeout(warm,1000);return()=>clearTimeout(timer);
+  },[ready]);
   function snapshot(): Workspace {
     return {
       batch,
@@ -499,6 +506,7 @@ function App() {
       setDuplicatesOnly(false);
       setResults({ rows: [], total: 0 });
       await local("saveWorkspace", snapshot());
+      await local("warmWriter", undefined);
       const next = await local("startJob", {
         batch,
         request: payload(),
@@ -743,7 +751,7 @@ function App() {
           </div>
         </header>
         <OfflineStatus running={running} />
-        <main>
+        <main><Suspense fallback={<p role="status">{t("ui.loading")}</p>}>
           {error && (
             <div role="alert" className="alert error">
               <CircleAlert size={18} />
@@ -1724,7 +1732,7 @@ function App() {
               {t("ui.localProcessingReusableRules")}
             </span>
           </footer>
-        </main>
+        </Suspense></main>
       </div>
       {editor && (
         <RuleEditor

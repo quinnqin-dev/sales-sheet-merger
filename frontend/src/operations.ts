@@ -2,7 +2,7 @@ import type { Library, Workspace, StoredJob, SourceFile } from "./domain.ts";
 import type { SavedTemplate } from "./template-files.ts";
 import { OUTPUT_TEMPLATE_EXAMPLE } from "./template-state.ts";
 import { LocalizedError, type Locale } from "./i18n-core.ts";
-import { inspectFile, validateRule } from "./engine.ts";
+import { inspectFile, validateRule, loadReader } from "./engine.ts";
 import {
   clearData,
   database,
@@ -21,7 +21,7 @@ import {
   templateSchema,
   validateLibrary,
 } from "./validation.ts";
-import { prepare, preview, runJob, finishExport } from "./processing.ts";
+import { prepare, preview, runJob, finishExport, loadWriter } from "./processing.ts";
 
 let active = false;
 const idle = () => {
@@ -43,6 +43,8 @@ async function requireFile(batch: string, fileId: string) {
 }
 const publicJob = ({ output: _, ...job }: StoredJob) => job;
 export const operations = {
+  warmReader:async(_:undefined)=>{await loadReader();},
+  warmWriter:async(_:undefined)=>{await loadWriter();},
   bootstrap: async (_: undefined) => restore(),
   saveWorkspace: async (state: Workspace) => saveWorkspace(state),
   createBatch: async (_: undefined) => {
