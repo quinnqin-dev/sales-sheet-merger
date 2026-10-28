@@ -1,3 +1,4 @@
+export type DuplicatePolicy = "keep-all" | "keep-first" | "keep-last";
 import type { Template } from "./template-state";
 import type { SavedTemplate } from "./template-files";
 export type Mapping = {
@@ -58,6 +59,7 @@ export type Assignment = {
   confirmed: boolean;
 };
 export type ResultRow = {
+  dropped?: boolean;
   file: string;
   sheet: string;
   row: number;
@@ -72,6 +74,7 @@ export type ResultRow = {
   duplicate_group?: string;
 };
 export type Summary = {
+  duplicate_dropped?: number;
   read: number;
   valid: number;
   issues: number;
@@ -90,6 +93,7 @@ export type Summary = {
   }[];
 };
 export type Job = {
+  duplicatePolicy?: DuplicatePolicy;
   id: string;
   status: string;
   phase: string;
@@ -105,6 +109,7 @@ export type Job = {
 };
 
 export type RunRequest = {
+  duplicatePolicy?: DuplicatePolicy;
   template: Template;
   selections: {
     file_id: string;
@@ -114,6 +119,7 @@ export type RunRequest = {
   }[];
 };
 export type Workspace = {
+  duplicatePolicy?: DuplicatePolicy;
   batch: string;
   files: SourceFile[];
   assignments: Record<string, Assignment>;
@@ -134,6 +140,7 @@ export type StoredJob = Job & {
   created: string;
 };
 export type StoredRow = ResultRow & {
+  sourceIndex?: number;
   jobId: string;
   index: number;
   kind: "valid" | "issues";

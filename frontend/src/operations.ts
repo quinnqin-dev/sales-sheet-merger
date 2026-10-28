@@ -234,6 +234,7 @@ export const operations = {
       total: prepared.total,
       summary: null,
       template: prepared.request.template,
+      duplicatePolicy: prepared.request.duplicatePolicy??"keep-all",
       created: new Date().toISOString(),
     };
     const tx = (await database()).transaction(

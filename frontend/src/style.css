@@ -2242,3 +2242,8 @@ td {
 .offline-banner > span { flex: 1; min-width: 0; }
 .offline-ready { padding: 6px 24px; color: var(--text-muted); font-size: 11px; }
 @media (max-width: 560px) { .offline-banner { flex-wrap: wrap; padding: 12px 15px; } .offline-banner > span { flex-basis: 100%; } .offline-banner > .btn { flex: 1; width: auto; } }
+
+.duplicate-policy { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 20px; }
+.duplicate-policy p { flex-basis: 100%; font-size: 12px; }
+.duplicate-policy-note { font-size: 12px; margin: 0 0 20px; }
+@media (max-width: 560px) { .duplicate-policy select { width: 100%; } }

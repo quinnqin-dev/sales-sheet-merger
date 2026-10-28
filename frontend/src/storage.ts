@@ -66,6 +66,7 @@ export async function saveWorkspace(state: Workspace) {
 }
 export const emptyWorkspace = (batch = ""): Workspace => ({
   batch,
+  duplicatePolicy: "keep-all",
   files: [],
   assignments: {},
   step: 1,
@@ -142,18 +143,17 @@ export async function getRows(
   )
     throw new LocalizedError("invalid_pagination");
   const db = await database();
+  const job=await db.get("jobs",id);
   const tx = db.transaction("rows");
   const index = tx.store.index(duplicates ? "duplicate" : "kind");
   const key = duplicates ? [id, 1] : [id, kind];
-  const total = await index.count(key as [string, number] & [string, string]);
-  let cursor = await index.openCursor(
-    key as [string, number] & [string, string],
-  );
-  if (cursor && page > 1) cursor = await cursor.advance((page - 1) * 50);
-  const rows: StoredRow[] = [];
-  while (cursor && rows.length < 50) {
-    rows.push(cursor.value);
-    cursor = await cursor.continue();
+  const storedTotal=await index.count(key as [string,number]&[string,string]);
+  const total=!duplicates&&kind==='valid'?job?.summary?.valid??storedTotal:storedTotal;
+  let cursor=await index.openCursor(key as [string,number]&[string,string]);
+  const rows:StoredRow[]=[];let offset=(page-1)*50;
+  while(cursor&&rows.length<50){
+    if(duplicates||kind!=='valid'||!cursor.value.dropped){if(offset)offset--;else rows.push(cursor.value);}
+    cursor=await cursor.continue();
   }
   return { rows, total };
 }

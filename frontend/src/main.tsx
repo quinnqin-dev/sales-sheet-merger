@@ -1,3 +1,4 @@
+import type { DuplicatePolicy } from "./domain";
 import { MemoryWarning } from "./MemoryWarning";
 import { memoryEstimate } from "./preflight";
 import { OfflineStatus } from "./OfflineStatus";
@@ -208,6 +209,7 @@ function BrowserDataDialog({
 
 function App() {
   const { t } = useI18n();
+  const [duplicatePolicy,setDuplicatePolicy]=useState<DuplicatePolicy>("keep-all");
   const [memoryWarning,setMemoryWarning]=useState(false);
   const [ready, setReady] = useState(false);
   const [dataDialog, setDataDialog] = useState<"batch" | "all" | null>(null);
@@ -281,6 +283,7 @@ function App() {
       .then(({ library, workspace }) => {
         setLibrary(library);
         setBatch(workspace.batch);
+        setDuplicatePolicy(workspace.duplicatePolicy??"keep-all");
         setFiles(workspace.files);
         setAssignments(workspace.assignments);
         setStep(workspace.step);
@@ -301,6 +304,7 @@ function App() {
       .catch(e=>{setSaveState("failed");setError(messageFromError(e));});
   }, [
     ready,
+    duplicatePolicy,
     batch,
     files,
     assignments,
@@ -313,6 +317,7 @@ function App() {
   function snapshot(): Workspace {
     return {
       batch,
+      duplicatePolicy,
       files,
       assignments,
       step,
@@ -465,6 +470,7 @@ function App() {
   function payload() {
     return {
       template,
+      duplicatePolicy,
       selections: selections.map((s) => ({
         file_id: s.file.id,
         sheet: s.sheet.name,
@@ -531,6 +537,7 @@ function App() {
     });
   }
   function reset() {
+    setDuplicatePolicy("keep-all");
     setStep(1);
     setFiles([]);
     setAssignments({});
@@ -1282,6 +1289,12 @@ function App() {
                       {t("ui.problemRowsAreIsolatedValidRowsCan")}
                     </div>
                   </div>
+                  <div className="panel section-panel duplicate-policy">
+                    <label htmlFor="duplicate-policy">{t("duplicates.label")}</label>
+                    <select id="duplicate-policy" value={duplicatePolicy} onChange={e=>setDuplicatePolicy(e.target.value as DuplicatePolicy)}>
+                      {(["keep-all","keep-first","keep-last"] as const).map(policy=><option key={policy} value={policy}>{t(`duplicates.${policy}`)}</option>)}
+                    </select><p>{t("duplicates.before")}</p>
+                  </div>
                   <div className="wizard-footer">
                     <button className="btn subtle" onClick={() => setStep(3)}>
                       <ArrowLeft size={16} />
@@ -1386,6 +1399,7 @@ function App() {
                             </div>
                           ))}
                         </div>
+                        <p className="duplicate-policy-note">{t("duplicates.result",{policy:t(`duplicates.${job.duplicatePolicy??"keep-all"}`),extra:job.summary.duplicate_extra,dropped:job.summary.duplicate_dropped??0})}</p>
                         <div className="panel section-panel">
                           <div className="result-tabs">
                             <button
@@ -1804,7 +1818,7 @@ function ResultTable({
                     className="badge amber"
                     title={t("ui.duplicateGroup", { p0: r.duplicate_group })}
                   >
-                    {t("ui.duplicateRetained")}
+                    {t(r.dropped?"duplicates.dropped":"ui.duplicateRetained")}
                   </span>
                 ) : (
                   <span className="success-text">

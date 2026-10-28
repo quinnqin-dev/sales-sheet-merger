@@ -93,7 +93,7 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
         .filter((c) => c.type === "number")
         .map((c) => [c.id, new Decimal(0)]),
     );
-    const counts = new Map<string, number>(),
+    const counts = new Map<string, {count:number;first:number;last:number}>(),
       sources: Summary["sources"] = [];
     let chunk: StoredRow[] = [];
     // Read one source workbook at a time, reusing it for its selected sheets.
@@ -142,7 +142,8 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
           if (job.processed > 100000)
             throw new LocalizedError("total_row_limit");
           if (kind === "valid") {
-            counts.set(fingerprint, (counts.get(fingerprint) ?? 0) + 1);
+            const previous=counts.get(fingerprint);
+            counts.set(fingerprint,{count:(previous?.count??0)+1,first:previous?.first??job.processed,last:job.processed});
             job.template.columns.forEach((c, i) => {
               if (totals[c.id] && result.values[i] != null)
                 totals[c.id] = totals[c.id].plus(String(result.values[i]));
@@ -150,6 +151,7 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
           }
           chunk.push({
             jobId: job.id,
+            sourceIndex:sources.length,
             index: job.processed,
             kind,
             fingerprint,
@@ -169,15 +171,16 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
       }
     }
     if (chunk.length) await putRows(chunk);
-    const groups = [...counts.entries()].filter(([, count]) => count > 1);
+    const groups = [...counts.entries()].filter(([, entry]) => entry.count > 1);
     job.summary = {
       read: job.processed,
       valid: sources.reduce((n, s) => n + s.valid, 0),
       issues: sources.reduce((n, s) => n + s.issues, 0),
       blank: sources.reduce((n, s) => n + s.blank, 0),
-      duplicate_rows: groups.reduce((n, [, c]) => n + c, 0),
-      duplicate_extra: groups.reduce((n, [, c]) => n + c - 1, 0),
+      duplicate_rows: groups.reduce((n, [, c]) => n + c.count, 0),
+      duplicate_extra: groups.reduce((n, [, c]) => n + c.count - 1, 0),
       duplicate_groups: groups.length,
+      duplicate_dropped:0,
       totals: Object.fromEntries(
         Object.entries(totals).map(([k, v]) => [k, v.toFixed()]),
       ),
@@ -189,16 +192,22 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
         IDBKeyRange.bound([job.id, 0], [job.id, Number.MAX_SAFE_INTEGER]),
       );
       while (cursor) {
-        if ((counts.get(cursor.value.fingerprint) ?? 0) > 1)
-          await cursor.update({
-            ...cursor.value,
-            duplicate: 1,
-            duplicate_group: cursor.value.fingerprint.slice(0, 12),
-          });
+        const row=cursor.value,group=counts.get(row.fingerprint);
+        if(group&&group.count>1){
+          const policy=job.duplicatePolicy??'keep-all';
+          const dropped=policy==='keep-first'?row.index!==group.first:policy==='keep-last'?row.index!==group.last:false;
+          if(dropped){
+            job.summary.duplicate_dropped=(job.summary.duplicate_dropped??0)+1;job.summary.valid--;
+            const source=sources[row.sourceIndex??-1];if(source)source.valid--;
+            job.template.columns.forEach((c,i)=>{if(totals[c.id]&&row.values[i]!=null)totals[c.id]=totals[c.id].minus(String(row.values[i]));});
+          }
+          await cursor.update({...row,dropped,duplicate:1,duplicate_group:row.fingerprint.slice(0,12)});
+        }
         cursor = await cursor.continue();
       }
       await tx.done;
     }
+    job.summary.totals=Object.fromEntries(Object.entries(totals).map(([id,value])=>[id,value.toFixed()]));
     job.phase_code = "phase_exporting";
     await db.put("jobs", job);
     await finishExport(job);

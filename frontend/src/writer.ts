@@ -30,18 +30,18 @@ const styles='<?xml version="1.0" encoding="UTF-8"?><styleSheet xmlns="http://sc
 export async function exportWorkbook(job:StoredJob) {
  const chunks:Uint8Array[]=[];let failure:Error|undefined;
  const zip=new Zip((error,data)=>{if(error)failure=error;else chunks.push(new Uint8Array(data));});
- const part=(path:string,content:string)=>{const entry=new ZipDeflate(path,{level:6});zip.add(entry);entry.push(strToU8(content),true);};
+ const part=(path:string,content:string)=>{const entry=new ZipDeflate(path,{level:6});entry.mtime=new Date(2000,0,1);zip.add(entry);entry.push(strToU8(content),true);};
  part('[Content_Types].xml','<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>');
  part('_rels/.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>');
  part('xl/workbook.xml','<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Merged Data" sheetId="1" r:id="rId1"/></sheets></workbook>');
  part('xl/_rels/workbook.xml.rels','<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>');
  part('xl/styles.xml',styles);
- const entry=new ZipDeflate('xl/worksheets/sheet1.xml',{level:6});zip.add(entry);entry.push(strToU8(writeHeader(job.template.columns)),false);
+ const entry=new ZipDeflate('xl/worksheets/sheet1.xml',{level:6});entry.mtime=new Date(2000,0,1);zip.add(entry);entry.push(strToU8(writeHeader(job.template.columns)),false);
  const db=await database();let after=0,count=1;
  while(true){
   const tx=db.transaction('rows');let cursor=await tx.store.openCursor(IDBKeyRange.bound([job.id,after],[job.id,Number.MAX_SAFE_INTEGER],true,false));const page:StoredRow[]=[];
   while(cursor&&page.length<1000){page.push(cursor.value);cursor=await cursor.continue();}await tx.done;if(!page.length)break;
-  const lines:string[]=[];for(const row of page){after=row.index;if(row.kind==='valid')lines.push(writeDataRow(row,job.template.columns,++count));}
+  const lines:string[]=[];for(const row of page){after=row.index;if(row.kind==='valid'&&!row.dropped)lines.push(writeDataRow(row,job.template.columns,++count));}
   entry.push(strToU8(lines.join('')),false);if(failure)throw failure;
  }
  entry.push(strToU8(writeAutoFilter(count,job.template.columns.length)),true);zip.end();if(failure)throw failure;
