@@ -212,10 +212,10 @@ export function TemplateEditor({
           <tbody>
             {draft.columns.map((c, i) => (
               <tr key={c.id}>
-                <td className="order-index">
+                <td className="order-index" data-label={t("ui.order")}>
                   {String(i + 1).padStart(2, "0")}
                 </td>
-                <td>
+                <td data-label={t("ui.targetColumnName")}>
                   <input
                     aria-label={t("ui.columnName", { p0: i + 1 })}
                     value={c.name}
@@ -228,7 +228,7 @@ export function TemplateEditor({
                     onChange={(e) => patch(c.id, { name: e.target.value })}
                   />
                 </td>
-                <td>
+                <td data-label={t("ui.dataType")}>
                   <select
                     aria-label={t("ui.dataType211", { p0: c.name })}
                     value={c.type}
@@ -243,7 +243,7 @@ export function TemplateEditor({
                     <option value="date">{t("ui.date")}</option>
                   </select>
                 </td>
-                <td>
+                <td data-label={t("ui.required")}>
                   <label className="checkbox-label">
                     <input
                       aria-label={t("ui.required213", { p0: c.name })}
@@ -256,8 +256,8 @@ export function TemplateEditor({
                     {t("ui.required")}
                   </label>
                 </td>
-                <td>
-                  <div className="button-group">
+                <td data-label={t("ui.reorder")}>
+                  <div className="button-group template-column-actions">
                     <button
                       className="icon-btn"
                       disabled={i === 0}
