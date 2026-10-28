@@ -37,3 +37,12 @@ test('quota errors are explicit and aborted writes retain the previous saved lib
   assert.deepEqual(await op.getConfig(),original);
   assert.equal(storageError(new DOMException('full','QuotaExceededError')).code,'browser.quota');
 });
+test('a browser refusing File persistence can store original bytes without a schema migration',async()=>{
+ await op.clearData({all:true});const batch=(await op.createBatch()).id,original=IDBObjectStore.prototype.put;
+ IDBObjectStore.prototype.put=function(value,...args){if((this.name==='files'&&value.blob instanceof Blob)||(this.name==='jobs'&&value.output instanceof Blob))throw new DOMException('File unsupported','DataCloneError');return original.call(this,value,...args);};
+ try{
+  const text='ID,Value\n0001,0.1\n0002,0.2',files=await op.addFiles({batch,files:[new File([text],'data.csv')]});const db=await database(),stored=await db.get('files',files[0].id);assert.ok(stored.blob instanceof ArrayBuffer);assert.equal(new TextDecoder().decode(stored.blob),text);assert.equal(db.version,1);assert.deepEqual([...db.objectStoreNames],['files','jobs','rows','settings']);
+  const meta=await op.inspectFile({batch,id:files[0].id,encoding:'utf-8-sig',header_rows:{CSV:1}});assert.equal(meta.sheets[0].row_count,2);
+  let job=await op.startJob({batch,locale:'en',request:{template,selections:[{file_id:meta.id,sheet:'CSV',header_row:1,rule}]}});for(let i=0;job.status==='running'&&i<1000;i++){await new Promise(r=>setTimeout(r,2));job=await op.getJob({id:job.id});}assert.equal(job.status,'done');assert.equal(job.summary.valid,2);assert.ok((await db.get('jobs',job.id)).output instanceof ArrayBuffer);assert.ok((await op.exportJob({id:job.id})).blob instanceof Blob);
+ }finally{IDBObjectStore.prototype.put=original;}
+});

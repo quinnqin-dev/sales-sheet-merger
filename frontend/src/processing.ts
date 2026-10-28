@@ -73,17 +73,38 @@ export async function preview(prepared: Prepared, locale: Locale) {
   }
   return { rows, total: prepared.total };
 }
-export const loadWriter=()=>import('./writer.ts');
-export async function exportWorkbook(job:StoredJob){return (await loadWriter()).exportWorkbook(job);}
-export async function finishExport(job:StoredJob,write=exportWorkbook) {
- const db=await database();
- try{
-  job.output=await write(job);job.status='done';job.phase_code='phase_done';delete job.error_code;delete job.error_params;
-  await db.put('jobs',job);
- }catch{
-  job.output=undefined;job.status='export-failed';job.error_code='browser.exportError';job.error_params={};
-  try{await db.put('jobs',job);}catch{/* The saved summary and rows remain retryable after reload. */}
- }
+export const loadWriter = () => import("./writer.ts");
+export async function exportWorkbook(job: StoredJob) {
+  return (await loadWriter()).exportWorkbook(job);
+}
+export async function finishExport(job: StoredJob, write = exportWorkbook) {
+  const db = await database();
+  try {
+    job.output = await write(job);
+    job.status = "done";
+    job.phase_code = "phase_done";
+    delete job.error_code;
+    delete job.error_params;
+    try {
+      await db.put("jobs", job);
+    } catch (error) {
+      if (error instanceof DOMException && error.name === "QuotaExceededError")
+        throw error;
+      // WebKit may reject Blob records, while the same XLSX bytes are storable.
+      job.output = await job.output.arrayBuffer();
+      await db.put("jobs", job);
+    }
+  } catch {
+    job.output = undefined;
+    job.status = "export-failed";
+    job.error_code = "browser.exportError";
+    job.error_params = {};
+    try {
+      await db.put("jobs", job);
+    } catch {
+      /* The saved summary and rows remain retryable after reload. */
+    }
+  }
 }
 export async function runJob(job: StoredJob, prepared: Prepared) {
   const db = await database();
@@ -93,7 +114,10 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
         .filter((c) => c.type === "number")
         .map((c) => [c.id, new Decimal(0)]),
     );
-    const counts = new Map<string, {count:number;first:number;last:number}>(),
+    const counts = new Map<
+        string,
+        { count: number; first: number; last: number }
+      >(),
       sources: Summary["sources"] = [];
     let chunk: StoredRow[] = [];
     // Read one source workbook at a time, reusing it for its selected sheets.
@@ -142,8 +166,12 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
           if (job.processed > 100000)
             throw new LocalizedError("total_row_limit");
           if (kind === "valid") {
-            const previous=counts.get(fingerprint);
-            counts.set(fingerprint,{count:(previous?.count??0)+1,first:previous?.first??job.processed,last:job.processed});
+            const previous = counts.get(fingerprint);
+            counts.set(fingerprint, {
+              count: (previous?.count ?? 0) + 1,
+              first: previous?.first ?? job.processed,
+              last: job.processed,
+            });
             job.template.columns.forEach((c, i) => {
               if (totals[c.id] && result.values[i] != null)
                 totals[c.id] = totals[c.id].plus(String(result.values[i]));
@@ -151,7 +179,7 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
           }
           chunk.push({
             jobId: job.id,
-            sourceIndex:sources.length,
+            sourceIndex: sources.length,
             index: job.processed,
             kind,
             fingerprint,
@@ -180,7 +208,7 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
       duplicate_rows: groups.reduce((n, [, c]) => n + c.count, 0),
       duplicate_extra: groups.reduce((n, [, c]) => n + c.count - 1, 0),
       duplicate_groups: groups.length,
-      duplicate_dropped:0,
+      duplicate_dropped: 0,
       totals: Object.fromEntries(
         Object.entries(totals).map(([k, v]) => [k, v.toFixed()]),
       ),
@@ -192,22 +220,41 @@ export async function runJob(job: StoredJob, prepared: Prepared) {
         IDBKeyRange.bound([job.id, 0], [job.id, Number.MAX_SAFE_INTEGER]),
       );
       while (cursor) {
-        const row=cursor.value,group=counts.get(row.fingerprint);
-        if(group&&group.count>1){
-          const policy=job.duplicatePolicy??'keep-all';
-          const dropped=policy==='keep-first'?row.index!==group.first:policy==='keep-last'?row.index!==group.last:false;
-          if(dropped){
-            job.summary.duplicate_dropped=(job.summary.duplicate_dropped??0)+1;job.summary.valid--;
-            const source=sources[row.sourceIndex??-1];if(source)source.valid--;
-            job.template.columns.forEach((c,i)=>{if(totals[c.id]&&row.values[i]!=null)totals[c.id]=totals[c.id].minus(String(row.values[i]));});
+        const row = cursor.value,
+          group = counts.get(row.fingerprint);
+        if (group && group.count > 1) {
+          const policy = job.duplicatePolicy ?? "keep-all";
+          const dropped =
+            policy === "keep-first"
+              ? row.index !== group.first
+              : policy === "keep-last"
+                ? row.index !== group.last
+                : false;
+          if (dropped) {
+            job.summary.duplicate_dropped =
+              (job.summary.duplicate_dropped ?? 0) + 1;
+            job.summary.valid--;
+            const source = sources[row.sourceIndex ?? -1];
+            if (source) source.valid--;
+            job.template.columns.forEach((c, i) => {
+              if (totals[c.id] && row.values[i] != null)
+                totals[c.id] = totals[c.id].minus(String(row.values[i]));
+            });
           }
-          await cursor.update({...row,dropped,duplicate:1,duplicate_group:row.fingerprint.slice(0,12)});
+          await cursor.update({
+            ...row,
+            dropped,
+            duplicate: 1,
+            duplicate_group: row.fingerprint.slice(0, 12),
+          });
         }
         cursor = await cursor.continue();
       }
       await tx.done;
     }
-    job.summary.totals=Object.fromEntries(Object.entries(totals).map(([id,value])=>[id,value.toFixed()]));
+    job.summary.totals = Object.fromEntries(
+      Object.entries(totals).map(([id, value]) => [id, value.toFixed()]),
+    );
     job.phase_code = "phase_exporting";
     await db.put("jobs", job);
     await finishExport(job);

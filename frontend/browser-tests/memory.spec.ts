@@ -2,6 +2,7 @@ import {test,expect} from '@playwright/test';
 import {readFileSync,readdirSync,writeFileSync} from 'node:fs';
 test('measure 100k export worker heap',async({page,context},info)=>{
  test.skip(info.project.name!=='chromium');
+ test.setTimeout(180000);
  const session=await context.newCDPSession(page),sessions=new Set<string>(),usage=new Map<string,number>();let serial=0,peak=0;
  session.on('Target.attachedToTarget',e=>{if(e.targetInfo.type==='worker')sessions.add(e.sessionId);});
  session.on('Target.receivedMessageFromTarget',e=>{const m=JSON.parse(e.message);if(m.result?.usedSize){usage.set(e.sessionId,m.result.usedSize+(m.result.backingStorageSize||0));peak=Math.max(peak,[...usage.values()].reduce((a,b)=>a+b,0));}});

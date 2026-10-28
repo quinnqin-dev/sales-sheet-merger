@@ -2,56 +2,71 @@
   {
     "file": "index.html",
     "bytes": 549,
-    "br": 213
+    "br": 209
   },
   {
     "file": "sw.js",
-    "bytes": 1921870,
-    "br": 464691
+    "bytes": 2575619,
+    "br": 929709
   },
   {
-    "file": "assets/TemplateManager-rUW75iDA.js",
+    "file": "assets/BackupControls-CqC6tgAa.js",
+    "bytes": 904,
+    "br": 396
+  },
+  {
+    "file": "assets/TemplateManager-Car1o_xu.js",
     "bytes": 17079,
     "br": 4247
   },
   {
-    "file": "assets/UserGuide-BPNhg9zY.js",
+    "file": "assets/UserGuide-S-eXG9Db.js",
     "bytes": 2855,
-    "br": 944
+    "br": 945
   },
   {
-    "file": "assets/browser-Bf8dNr66.js",
-    "bytes": 14768,
-    "br": 6061
+    "file": "assets/backup-Dkbb1lEa.js",
+    "bytes": 3709,
+    "br": 1488
   },
   {
-    "file": "assets/index-CcC_DG3u.js",
-    "bytes": 345645,
-    "br": 91767
+    "file": "assets/browser-DgkuFXNB.js",
+    "bytes": 15615,
+    "br": 6441
   },
   {
-    "file": "assets/index-te9Gpzc6.css",
-    "bytes": 33381,
-    "br": 6598
+    "file": "assets/index-fE8rhUY7.css",
+    "bytes": 33952,
+    "br": 6700
   },
   {
-    "file": "assets/processing.worker-DsZOFtoG.js",
-    "bytes": 176953,
-    "br": 48709
+    "file": "assets/index-vKk6kGBM.js",
+    "bytes": 350497,
+    "br": 93123
   },
   {
-    "file": "assets/reader-C3bs2fLT.js",
-    "bytes": 835176,
-    "br": 195459
+    "file": "assets/processing.worker-C_HS6Zkb.js",
+    "bytes": 10782,
+    "br": 3646
   },
   {
-    "file": "assets/refresh-cw-BaUtMP6k.js",
+    "file": "assets/reader-C9ycFLTn.js",
+    "bytes": 835173,
+    "br": 195349
+  },
+  {
+    "file": "assets/refresh-cw-D9Sc6VRa.js",
     "bytes": 489,
     "br": 269
   },
   {
-    "file": "assets/writer-BtriY2kJ.js",
-    "bytes": 5197,
-    "br": 1748
+    "file": "assets/worker-runtime-CUigHT_V.js",
+    "bytes": 171830,
+    "br": 47108
+  },
+  {
+    "file": "assets/writer-CVTEob3J.js",
+    "bytes": 5194,
+    "br": 1752
   }
 ]

@@ -1,0 +1,27 @@
+import 'fake-indexeddb/auto';
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {unzipSync,strFromU8,zipSync,strToU8} from 'fflate';
+import * as XLSX from 'xlsx';
+import {operations as op} from '../src/operations.ts';
+import {database,saveWorkspace,restore} from '../src/storage.ts';
+const template={name:'Records',columns:[{id:'id',name:'ID',type:'text',required:true},{id:'v',name:'Value',type:'number',required:true}]};
+const rule={id:'r1',name:'CSV rule',headers:['ID','Value'],mappings:template.columns.map((c,i)=>({target_id:c.id,mode:'source',source_index:i,fixed:'',trim:true,fill:'',replacements:[],date_format:'%Y-%m-%d',number_style:'comma'}))};
+test('full backup restores rules, templates, mappings and file manifest, never original blobs or a runnable result',async()=>{
+ await op.clearData({all:true});await op.applyTemplate(template);await op.saveRule(rule);await op.saveRule({...rule,id:'r2',name:'Second rule'});
+ for(const id of ['t1','t2'])await op.registerTemplate({record:{format:'sheet-merger.output-template',version:1,id,template,file_name:id+'.json'},replace:false});
+ const batch=(await op.createBatch()).id,data='Note\nID,Value\n0001,0.1\n0002,0.2',file=new File([data],'source.csv');let files=await op.addFiles({batch,files:[file]});
+ files=[await op.inspectFile({batch,id:files[0].id,encoding:'utf-8-sig',header_rows:{CSV:2}})];
+ const assignments={[files[0].id+':CSV']:{enabled:true,confirmed:true,rule}};await saveWorkspace({batch,files,assignments,step:4,selectedTemplateId:'t1',preview:[],job:null,duplicatePolicy:'keep-last'});
+ let job=await op.startJob({batch,locale:'en',request:{template,duplicatePolicy:'keep-last',selections:[{file_id:files[0].id,sheet:'CSV',header_row:2,rule}]}});
+ for(let i=0;job.status==='running'&&i<1000;i++){await new Promise(r=>setTimeout(r,2));job=await op.getJob({id:job.id});}assert.equal(job.status,'done');
+ const counts=await op.dataInventory();assert.deepEqual(counts,{files:1,results:1,templates:2,rules:2});
+ const exported=await op.exportBackup(),bytes=new Uint8Array(await exported.blob.arrayBuffer()),entries=unzipSync(bytes);
+ assert.deepEqual(Object.keys(entries).sort(),['batch.json','result.xlsx','rules.json','templates/t1.json','templates/t2.json']);
+ const manifest=JSON.parse(strFromU8(entries['batch.json']));assert.equal(manifest.originalFilesIncluded,false);assert.equal(manifest.files[0].name,file.name);assert.equal(manifest.files[0].size,file.size);assert.equal(manifest.files[0].blob,undefined);assert.equal(manifest.files[0].sheets[0].sample,undefined);assert.equal(XLSX.utils.sheet_to_json(XLSX.read(entries['result.xlsx']).Sheets['Merged Data']).length,2);
+ await op.clearData({all:true});assert.deepEqual(await op.dataInventory(),{files:0,results:0,templates:0,rules:0});
+ const imported=await op.importBackup(new File([bytes],'backup.zip'));assert.equal(imported.library.rules.length,2);assert.equal(imported.library.templates.length,2);assert.equal(imported.workspace.step,1);assert.equal(imported.workspace.files.length,0);assert.equal(imported.workspace.job,null);assert.equal(imported.workspace.duplicatePolicy,'keep-last');assert.equal(imported.workspace.pendingImport.files[0].name,file.name);assert.equal(imported.workspace.pendingImport.assignments[files[0].id+':CSV'].confirmed,false);
+ const restored=await restore();assert.deepEqual(restored.workspace.pendingImport,imported.workspace.pendingImport);assert.equal(await(await database()).count('rows'),0);
+ const selected=await op.addFiles({batch:imported.workspace.batch,files:[file]});assert.equal(selected[0].sheets[0].header_row,2);assert.equal(selected[0].sheets[0].row_count,2);
+ const original=await op.getConfig(),bad=new File([zipSync({'rules.json':strToU8('{}')})],'bad.zip');await assert.rejects(op.importBackup(bad),e=>e.code==='backup.invalid');assert.deepEqual(await op.getConfig(),original);assert.equal(await(await database()).count('files'),1);
+});

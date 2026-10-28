@@ -1,12 +1,13 @@
 {
-  "coldInteractiveMilliseconds": 186.90000000596046,
+  "coldInteractiveMilliseconds": 163.1000000089407,
   "requested": [
     "/",
-    "/assets/index-CcC_DG3u.js",
-    "/assets/index-te9Gpzc6.css",
+    "/assets/index-vKk6kGBM.js",
+    "/assets/index-fE8rhUY7.css",
     "/icon-192.png",
-    "/assets/processing.worker-DsZOFtoG.js",
-    "/assets/reader-C3bs2fLT.js",
-    "/assets/browser-Bf8dNr66.js"
+    "/assets/processing.worker-C_HS6Zkb.js",
+    "/assets/worker-runtime-CUigHT_V.js",
+    "/assets/reader-C9ycFLTn.js",
+    "/assets/browser-DgkuFXNB.js"
   ]
 }

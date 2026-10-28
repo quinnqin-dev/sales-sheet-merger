@@ -35,3 +35,15 @@ test('export failures preserve rows, restore as retryable and can retry without 
 test('large batch warnings use conservative row count and device hints without hard blocking',()=>{
  assert.equal(memoryEstimate(50000,10,{deviceMemory:4}).warn,false);assert.equal(memoryEstimate(50001,10,{deviceMemory:4}).warn,true);assert.equal(memoryEstimate(100000,10,{userAgent:'iPhone'}).warn,true);assert.equal(memoryEstimate(100000,10,{deviceMemory:8,userAgent:'Desktop'}).warn,false);assert.equal(memoryEstimate(60000,2,{deviceMemory:4}).bytes,30720000);
 });
+test('quota failure writing the output and failure status cannot leave polling stuck',async()=>{
+ const db=await database(),job={id:'quota',batchId:'quota',status:'export-failed',phase:'',phase_code:'phase_exporting',locale:'en',processed:1,total:1,summary:{read:1,valid:1,issues:0,blank:0,duplicate_rows:0,duplicate_extra:0,duplicate_groups:0,totals:{},sources:[]},template:{name:'Retry',columns:[{id:'id',name:'ID',type:'text',required:true}]},created:new Date().toISOString()};
+ await db.put('jobs',job);await db.put('settings',{batch:'quota',files:[],assignments:{},step:5,selectedTemplateId:null,preview:[],job},'workspace');
+ await putRows([{jobId:'quota',index:1,kind:'valid',fingerprint:'',duplicate:0,file:'a',sheet:'s',row:2,raw:[],reasons:[],values:['0001']}]);
+ const put=db.put.bind(db);db.put=async(store,value,...args)=>{if(store==='jobs'&&value.status!=='running'){await new Promise(r=>setTimeout(r,30));throw new DOMException('full','QuotaExceededError');}return put(store,value,...args);};
+ try{
+  await op.bootstrap(undefined);let result=await op.retryExport({id:'quota'});
+  for(let i=0;result.status==='running'&&i<100;i++){await new Promise(r=>setTimeout(r,5));result=await op.getJob({id:'quota'});}
+  assert.equal(result.status,'export-failed');assert.equal(result.error_code,'browser.exportError');
+  assert.equal((await op.bootstrap(undefined)).workspace.job.status,'export-failed');assert.equal(await db.count('rows',IDBKeyRange.bound(['quota',0],['quota',100])),1);
+ }finally{db.put=put;}
+});

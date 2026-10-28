@@ -113,7 +113,9 @@ const librarySchema = z.object({
   templates: z.array(savedSchema).max(100).optional(),
 });
 export const runSchema = z.object({
-  duplicatePolicy: z.enum(["keep-all","keep-first","keep-last"]).default("keep-all"),
+  duplicatePolicy: z
+    .enum(["keep-all", "keep-first", "keep-last"])
+    .default("keep-all"),
   template: templateSchema,
   selections: z
     .array(

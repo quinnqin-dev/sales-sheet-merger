@@ -1,0 +1,2610 @@
+{
+  "config": {
+    "configFile": "/Users/a1234/Projects/sheet-merger/frontend/playwright.config.ts",
+    "rootDir": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests",
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 1
+    },
+    "preserveOutput": "always",
+    "reporter": [
+      [
+        "list",
+        null
+      ],
+      [
+        "json",
+        {
+          "outputFile": "../docs/verification/browser-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "quiet": false,
+    "projects": [
+      {
+        "outputDir": "/Users/a1234/Projects/sheet-merger/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "chromium",
+        "name": "chromium",
+        "testDir": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "/Users/a1234/Projects/sheet-merger/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "firefox",
+        "name": "firefox",
+        "testDir": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      },
+      {
+        "outputDir": "/Users/a1234/Projects/sheet-merger/frontend/test-results",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 1
+        },
+        "id": "webkit",
+        "name": "webkit",
+        "testDir": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests",
+        "testIgnore": [],
+        "testMatch": [
+          "**/*.@(spec|test).?(c|m)[jt]s?(x)"
+        ],
+        "timeout": 180000
+      }
+    ],
+    "shard": null,
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.56.1",
+    "workers": 1,
+    "webServer": {
+      "command": "npm run build && npm run preview -- --host 127.0.0.1 --port 4178 --strictPort",
+      "url": "http://127.0.0.1:4178",
+      "reuseExistingServer": true
+    }
+  },
+  "suites": [
+    {
+      "title": "chunks.spec.ts",
+      "file": "chunks.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "reader warms at idle, writer stays unloaded and cold UI is interactive within budget",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 401,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:12.810Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "a7eeb4605666f1ca0649-fb1b061e749b5f098286",
+          "file": "chunks.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "reader warms at idle, writer stays unloaded and cold UI is interactive within budget",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/chunks.spec.ts",
+                    "line": 4,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 630,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:13.884Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/chunks.spec.ts",
+                        "line": 4,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "a7eeb4605666f1ca0649-f3af1de55a9644813553",
+          "file": "chunks.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "reader warms at idle, writer stays unloaded and cold UI is interactive within budget",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/chunks.spec.ts",
+                    "line": 4,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 418,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:32.962Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/chunks.spec.ts",
+                        "line": 4,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "a7eeb4605666f1ca0649-bb230445ea2aa6e1e564",
+          "file": "chunks.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "layout.spec.ts",
+      "file": "layout.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "layout 320",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2054,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:13.581Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-8b8ab25e0375faf0f5a0",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2326,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:15.640Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-a0471b3520e87d53f68b",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 412",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2343,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:17.975Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-7f16e90288be1786f989",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 600",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2295,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:20.324Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-b4380b43c87dd40555b8",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 1024",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2327,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:22.627Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-8afdac4c57e8feaf2419",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 1440",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2282,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:24.959Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-566d5c82a31bba6b5b3a",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 320",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 230,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:15.133Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-2627f681ccf6b326796f",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 318,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:15.370Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-d5cbdc6266d5120dfb6c",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 412",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 161,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:15.694Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-35ba02ca7a1b3119df87",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 600",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 161,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:15.863Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-1521fe16182802767ec8",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 1024",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 161,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:16.032Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-e97f31de0c65437efd56",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 1440",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 148,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:16.198Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-1c3af1af53d7a65dd401",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 320",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 157,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:33.615Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-003de5e07605b9d043ea",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 360",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 135,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:33.780Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-350a8b9835323ab95300",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 412",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 131,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:33.923Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-f515025f662a0a21632e",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 600",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 151,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:34.063Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-5f8424895d52e1d8836b",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 1024",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 147,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:34.220Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-feeddc4ac3a47c3c75a1",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        },
+        {
+          "title": "layout 1440",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 130,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:34.372Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/layout.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "9f98fd8c8d1538f5ebbb-28698daae9267f8b973c",
+          "file": "layout.spec.ts",
+          "line": 15,
+          "column": 55
+        }
+      ]
+    },
+    {
+      "title": "local.spec.ts",
+      "file": "local.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "five steps work offline, output is typed, and files/results restore after closing the tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4518,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:27.271Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-eb3851eb5a194d4d003b",
+          "file": "local.spec.ts",
+          "line": 157,
+          "column": 1
+        },
+        {
+          "title": "template save falls back to a JSON download, and delete requires confirmation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2329,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:31.794Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-50619147b33aee0b6caf",
+          "file": "local.spec.ts",
+          "line": 258,
+          "column": 1
+        },
+        {
+          "title": "another tab cannot overwrite a saved workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 506,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:34.133Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-06ee3ef51d36802a6d93",
+          "file": "local.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "five steps work offline, output is typed, and files/results restore after closing the tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 4575,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:16.375Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-fab146a0d778c0cb9fe0",
+          "file": "local.spec.ts",
+          "line": 157,
+          "column": 1
+        },
+        {
+          "title": "template save falls back to a JSON download, and delete requires confirmation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1974,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:20.956Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-9abb24bf541f5fb05813",
+          "file": "local.spec.ts",
+          "line": 258,
+          "column": 1
+        },
+        {
+          "title": "another tab cannot overwrite a saved workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 997,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:22.935Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-d502e3152cd1d0dabdbc",
+          "file": "local.spec.ts",
+          "line": 440,
+          "column": 1
+        },
+        {
+          "title": "five steps work offline, output is typed, and files/results restore after closing the tab",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "WebKit offline mode is covered by the stopped-server test; context.setOffline fails inside the engine.",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/local.spec.ts",
+                    "line": 50,
+                    "column": 8
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 132,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:34.534Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "WebKit offline mode is covered by the stopped-server test; context.setOffline fails inside the engine.",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/local.spec.ts",
+                        "line": 50,
+                        "column": 8
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-cc9eb4ca57be67ea8e98",
+          "file": "local.spec.ts",
+          "line": 157,
+          "column": 1
+        },
+        {
+          "title": "template save falls back to a JSON download, and delete requires confirmation",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2393,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:34.672Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-606b2d6a75ea297c0fb4",
+          "file": "local.spec.ts",
+          "line": 258,
+          "column": 1
+        },
+        {
+          "title": "another tab cannot overwrite a saved workspace",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 730,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:37.071Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "f8ab1ecd5facf788fad0-e15c0b3b9062de65a894",
+          "file": "local.spec.ts",
+          "line": 440,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "memory.spec.ts",
+      "file": "memory.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "measure 100k export worker heap",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 60350,
+                  "errors": [],
+                  "stdout": [
+                    {
+                      "text": "100k memory after \u001b[33m97528067\u001b[39m \u001b[33m60.0565\u001b[39m\n"
+                    }
+                  ],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:16:34.652Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "7ae46fcbe7df2182c676-60fe35c6bba53e5f9eea",
+          "file": "memory.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "measure 100k export worker heap",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/memory.spec.ts",
+                    "line": 4,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 162,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:23.952Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/memory.spec.ts",
+                        "line": 4,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ae46fcbe7df2182c676-13615dcc16ffb7f93848",
+          "file": "memory.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "measure 100k export worker heap",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/memory.spec.ts",
+                    "line": 4,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 124,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:37.813Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/memory.spec.ts",
+                        "line": 4,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "7ae46fcbe7df2182c676-e8e450a5899751278553",
+          "file": "memory.spec.ts",
+          "line": 3,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "offline.spec.ts",
+      "file": "offline.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "offline shell retains CSP, manifest, icons and processing worker",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 718,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:17:35.014Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-4a3dbd4046b656736e5e",
+          "file": "offline.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "updates wait for explicit refresh and can be dismissed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 794,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:17:35.736Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-43161b78fd835f1ace2d",
+          "file": "offline.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "online navigation updates cached HTML before offline fallback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 631,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:17:36.536Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-83e762c885929124ad25",
+          "file": "offline.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "opening an offline guide screenshot never overwrites the application shell",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 722,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:17:37.173Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-d54e05d71bc5c74b8162",
+          "file": "offline.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "offline shell retains CSP, manifest, icons and processing worker",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 872,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:24.126Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-db91ae07e88903b349d4",
+          "file": "offline.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "updates wait for explicit refresh and can be dismissed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                    "line": 15,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 77,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:25.005Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                        "line": 15,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-fad58adf6438ac4d44a0",
+          "file": "offline.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "online navigation updates cached HTML before offline fallback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 716,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:25.090Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-b7ea3e729b8699af0fc7",
+          "file": "offline.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "opening an offline guide screenshot never overwrites the application shell",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 712,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:25.816Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-a7286e0707a8cf82c795",
+          "file": "offline.spec.ts",
+          "line": 87,
+          "column": 1
+        },
+        {
+          "title": "offline shell retains CSP, manifest, icons and processing worker",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "See the stopped-server offline test for WebKit.",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                    "line": 4,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 129,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:37.950Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "See the stopped-server offline test for WebKit.",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                        "line": 4,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-8e02564fd587ace63361",
+          "file": "offline.spec.ts",
+          "line": 3,
+          "column": 1
+        },
+        {
+          "title": "updates wait for explicit refresh and can be dismissed",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                    "line": 15,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 131,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:38.088Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                        "line": 15,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-392f7f71c17f67c4dbc9",
+          "file": "offline.spec.ts",
+          "line": 31,
+          "column": 1
+        },
+        {
+          "title": "online navigation updates cached HTML before offline fallback",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "fail",
+                  "description": "WebKit 26 returns installed HTML despite enabled Navigation Preload under the unchanged strict CSP.",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                    "line": 29,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "failed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "failed",
+                  "duration": 601,
+                  "error": {
+                    "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"network-first-probe-20261028\"\u001b[39m\nReceived string:    \u001b[31m\"<!doctype html>\u001b[39m\n\u001b[31m<html lang=\\\"en\\\">\u001b[39m\n\u001b[31m  <head>\u001b[39m\n\u001b[31m    <meta charset=\\\"UTF-8\\\" />\u001b[39m\n\u001b[31m    <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\" />\u001b[39m\n\u001b[31m    <meta name=\\\"theme-color\\\" content=\\\"#183b32\\\" />\u001b[39m\n\u001b[31m    <link rel=\\\"manifest\\\" href=\\\"/manifest.webmanifest\\\" />\u001b[39m\n\u001b[31m    <link rel=\\\"icon\\\" href=\\\"/icon-192.png\\\" />\u001b[39m\n\u001b[31m    <title>Sheet Merger</title>\u001b[39m\n\u001b[31m    <script type=\\\"module\\\" crossorigin src=\\\"/assets/index-Bq4ha91g.js\\\"></script>\u001b[39m\n\u001b[31m    <link rel=\\\"stylesheet\\\" crossorigin href=\\\"/assets/index-BUYD-9cP.css\\\">\u001b[39m\n\u001b[31m  </head>\u001b[39m\n\u001b[31m  <body>\u001b[39m\n\u001b[31m    <div id=\\\"root\\\"></div>\u001b[39m\n\u001b[31m  </body>\u001b[39m\n\u001b[31m</html>\u001b[39m\n\u001b[31m\"\u001b[39m",
+                    "stack": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"network-first-probe-20261028\"\u001b[39m\nReceived string:    \u001b[31m\"<!doctype html>\u001b[39m\n\u001b[31m<html lang=\\\"en\\\">\u001b[39m\n\u001b[31m  <head>\u001b[39m\n\u001b[31m    <meta charset=\\\"UTF-8\\\" />\u001b[39m\n\u001b[31m    <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\" />\u001b[39m\n\u001b[31m    <meta name=\\\"theme-color\\\" content=\\\"#183b32\\\" />\u001b[39m\n\u001b[31m    <link rel=\\\"manifest\\\" href=\\\"/manifest.webmanifest\\\" />\u001b[39m\n\u001b[31m    <link rel=\\\"icon\\\" href=\\\"/icon-192.png\\\" />\u001b[39m\n\u001b[31m    <title>Sheet Merger</title>\u001b[39m\n\u001b[31m    <script type=\\\"module\\\" crossorigin src=\\\"/assets/index-Bq4ha91g.js\\\"></script>\u001b[39m\n\u001b[31m    <link rel=\\\"stylesheet\\\" crossorigin href=\\\"/assets/index-BUYD-9cP.css\\\">\u001b[39m\n\u001b[31m  </head>\u001b[39m\n\u001b[31m  <body>\u001b[39m\n\u001b[31m    <div id=\\\"root\\\"></div>\u001b[39m\n\u001b[31m  </body>\u001b[39m\n\u001b[31m</html>\u001b[39m\n\u001b[31m\"\u001b[39m\n    at /Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts:33:144",
+                    "location": {
+                      "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                      "column": 144,
+                      "line": 33
+                    },
+                    "snippet": "  31 |  const path=new URL('../dist/index.html',import.meta.url),original=readFileSync(path,'utf8'),marker='network-first-probe-20261028';\n  32 |  try{\n> 33 |   writeFileSync(path,original+`<!--${marker}-->`);const response=await page.goto('/?navigation-probe=20261028');expect(await response!.text()).toContain(marker);\n     |                                                                                                                                                ^\n  34 |   await context.setOffline(true);const cached=await page.reload();expect(await cached!.text()).toContain(marker);\n  35 |  }finally{writeFileSync(path,original);}\n  36 | });"
+                  },
+                  "errors": [
+                    {
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                        "column": 144,
+                        "line": 33
+                      },
+                      "message": "Error: \u001b[2mexpect(\u001b[22m\u001b[31mreceived\u001b[39m\u001b[2m).\u001b[22mtoContain\u001b[2m(\u001b[22m\u001b[32mexpected\u001b[39m\u001b[2m) // indexOf\u001b[22m\n\nExpected substring: \u001b[32m\"network-first-probe-20261028\"\u001b[39m\nReceived string:    \u001b[31m\"<!doctype html>\u001b[39m\n\u001b[31m<html lang=\\\"en\\\">\u001b[39m\n\u001b[31m  <head>\u001b[39m\n\u001b[31m    <meta charset=\\\"UTF-8\\\" />\u001b[39m\n\u001b[31m    <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1.0\\\" />\u001b[39m\n\u001b[31m    <meta name=\\\"theme-color\\\" content=\\\"#183b32\\\" />\u001b[39m\n\u001b[31m    <link rel=\\\"manifest\\\" href=\\\"/manifest.webmanifest\\\" />\u001b[39m\n\u001b[31m    <link rel=\\\"icon\\\" href=\\\"/icon-192.png\\\" />\u001b[39m\n\u001b[31m    <title>Sheet Merger</title>\u001b[39m\n\u001b[31m    <script type=\\\"module\\\" crossorigin src=\\\"/assets/index-Bq4ha91g.js\\\"></script>\u001b[39m\n\u001b[31m    <link rel=\\\"stylesheet\\\" crossorigin href=\\\"/assets/index-BUYD-9cP.css\\\">\u001b[39m\n\u001b[31m  </head>\u001b[39m\n\u001b[31m  <body>\u001b[39m\n\u001b[31m    <div id=\\\"root\\\"></div>\u001b[39m\n\u001b[31m  </body>\u001b[39m\n\u001b[31m</html>\u001b[39m\n\u001b[31m\"\u001b[39m\n\n  31 |  const path=new URL('../dist/index.html',import.meta.url),original=readFileSync(path,'utf8'),marker='network-first-probe-20261028';\n  32 |  try{\n> 33 |   writeFileSync(path,original+`<!--${marker}-->`);const response=await page.goto('/?navigation-probe=20261028');expect(await response!.text()).toContain(marker);\n     |                                                                                                                                                ^\n  34 |   await context.setOffline(true);const cached=await page.reload();expect(await cached!.text()).toContain(marker);\n  35 |  }finally{writeFileSync(path,original);}\n  36 | });\n    at /Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts:33:144"
+                    }
+                  ],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:38.225Z",
+                  "annotations": [
+                    {
+                      "type": "fail",
+                      "description": "WebKit 26 returns installed HTML despite enabled Navigation Preload under the unchanged strict CSP.",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                        "line": 29,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": [
+                    {
+                      "name": "error-context",
+                      "contentType": "text/markdown",
+                      "path": "/Users/a1234/Projects/sheet-merger/frontend/test-results/offline-online-navigation--b56f2-TML-before-offline-fallback-webkit/error-context.md"
+                    }
+                  ],
+                  "errorLocation": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                    "column": 144,
+                    "line": 33
+                  }
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-0cb79cd4fb8ec36a1c8a",
+          "file": "offline.spec.ts",
+          "line": 63,
+          "column": 1
+        },
+        {
+          "title": "opening an offline guide screenshot never overwrites the application shell",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "description": "See the stopped-server offline test for WebKit.",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                    "line": 38,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 140,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:38.835Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "See the stopped-server offline test for WebKit.",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/offline.spec.ts",
+                        "line": 38,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "586fc5283fd8ec7c7982-e39d05d78e6392f0eea0",
+          "file": "offline.spec.ts",
+          "line": 87,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "recovery.spec.ts",
+      "file": "recovery.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "full backup, counted clear confirmation, restore and original file relinking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3643,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:17:37.912Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-6b9b4e13ab1cee1991a5",
+          "file": "recovery.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "low-memory preflight allows adjust or continue; updates cannot refresh an active merge",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 30170,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:17:41.562Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-802d5ae156fa02bc0a8b",
+          "file": "recovery.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "recoverable export error stays on results page and retries saved rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1430,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:11.740Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-41ccb27d80a86b66c35a",
+          "file": "recovery.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "full backup, counted clear confirmation, restore and original file relinking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 3660,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:26.544Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-b2d4444f91caaac8c3cb",
+          "file": "recovery.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "low-memory preflight allows adjust or continue; updates cannot refresh an active merge",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/recovery.spec.ts",
+                    "line": 21,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 80,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:30.210Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/recovery.spec.ts",
+                        "line": 21,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-d398c5572e464db71e79",
+          "file": "recovery.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "recoverable export error stays on results page and retries saved rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1623,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:30.296Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-94dd817289c34457c809",
+          "file": "recovery.spec.ts",
+          "line": 174,
+          "column": 1
+        },
+        {
+          "title": "full backup, counted clear confirmation, restore and original file relinking",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2756,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:38.988Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-10e184b0d30a41d45356",
+          "file": "recovery.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "low-memory preflight allows adjust or continue; updates cannot refresh an active merge",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/recovery.spec.ts",
+                    "line": 21,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 143,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:41.750Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/recovery.spec.ts",
+                        "line": 21,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-10121aadbe3ae9442d00",
+          "file": "recovery.spec.ts",
+          "line": 103,
+          "column": 1
+        },
+        {
+          "title": "recoverable export error stays on results page and retries saved rows",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 1347,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:41.901Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "ef78f3da5c9c24fceacf-baf0744f0311da94f73a",
+          "file": "recovery.spec.ts",
+          "line": 174,
+          "column": 1
+        }
+      ]
+    },
+    {
+      "title": "webkit-offline.spec.ts",
+      "file": "webkit-offline.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [
+        {
+          "title": "WebKit completes offline refresh, fresh import and export with its server stopped",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/webkit-offline.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "chromium",
+              "projectName": "chromium",
+              "results": [
+                {
+                  "workerIndex": 0,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 131,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:13.192Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/webkit-offline.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "aedfd31d27b49b624fd2-85e160fbda716296adb1",
+          "file": "webkit-offline.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "WebKit completes offline refresh, fresh import and export with its server stopped",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [
+                {
+                  "type": "skip",
+                  "location": {
+                    "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/webkit-offline.spec.ts",
+                    "line": 6,
+                    "column": 7
+                  }
+                }
+              ],
+              "expectedStatus": "skipped",
+              "projectId": "firefox",
+              "projectName": "firefox",
+              "results": [
+                {
+                  "workerIndex": 1,
+                  "parallelIndex": 0,
+                  "status": "skipped",
+                  "duration": 163,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:31.933Z",
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "location": {
+                        "file": "/Users/a1234/Projects/sheet-merger/frontend/browser-tests/webkit-offline.spec.ts",
+                        "line": 6,
+                        "column": 7
+                      }
+                    }
+                  ],
+                  "attachments": []
+                }
+              ],
+              "status": "skipped"
+            }
+          ],
+          "id": "aedfd31d27b49b624fd2-33dc29e16a19dfef6dfd",
+          "file": "webkit-offline.spec.ts",
+          "line": 5,
+          "column": 1
+        },
+        {
+          "title": "WebKit completes offline refresh, fresh import and export with its server stopped",
+          "ok": true,
+          "tags": [],
+          "tests": [
+            {
+              "timeout": 180000,
+              "annotations": [],
+              "expectedStatus": "passed",
+              "projectId": "webkit",
+              "projectName": "webkit",
+              "results": [
+                {
+                  "workerIndex": 2,
+                  "parallelIndex": 0,
+                  "status": "passed",
+                  "duration": 2977,
+                  "errors": [],
+                  "stdout": [],
+                  "stderr": [],
+                  "retry": 0,
+                  "startTime": "2026-10-28T03:18:43.262Z",
+                  "annotations": [],
+                  "attachments": []
+                }
+              ],
+              "status": "expected"
+            }
+          ],
+          "id": "aedfd31d27b49b624fd2-d0f4c517c7f062194a19",
+          "file": "webkit-offline.spec.ts",
+          "line": 5,
+          "column": 1
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-10-28T03:16:12.318Z",
+    "duration": 153963.005,
+    "expected": 32,
+    "skipped": 25,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

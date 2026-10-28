@@ -35,7 +35,7 @@ Two settings work together:
 
 ### 1. Import your files
 
-Drag files into **Batch merge**, or click **Choose files**. Select the worksheets you want to combine, then click **Next: configure rules**.
+Drag files into **Batch merge**, or click **Choose files**. Select the worksheets you want to combine, then click **Next: confirm template**.
 
 Expand a file to preview the source data. If its column names are not on the first row, change **Header row**.
 
@@ -76,7 +76,7 @@ Click **Preview converted data**. Check the IDs, names, scores, and warnings in 
 
 Click **Start merge** → **Download merged Excel**. This example produces **24 valid records** with the same four columns.
 
-The downloaded Excel contains **one worksheet of valid records**. Problem rows and their reasons stay on the results page. Exact duplicates are retained and flagged; they are not automatically removed.
+The downloaded Excel contains **one worksheet of valid records**. Problem rows and their reasons stay on the results page. Exact duplicates are retained and flagged by default. Before merging, choose **Keep the first row** or **Keep the last row** if needed. Counts and exact totals use retained valid rows.
 
 ![Completed merge with 24 valid records and the download button](frontend/public/guide/result-en.webp)
 
@@ -97,6 +97,10 @@ Use **Delete** to the right of **Edit template** to remove a library entry after
 ## Reuse your setup
 
 Your template library and saved source rules remain available after restarting. Select a template explicitly for each new batch. On your next import, matching headers suggest a saved rule—even when their column order differs. Review and confirm the mapping before merging.
+
+**Source rules → Export full backup** downloads one ZIP with rules, templates, batch file names/sizes and mappings, plus `result.xlsx` when generated. Original spreadsheets are excluded. Importing the ZIP replaces browser data and returns to the import step; reselect the original files and confirm recovered mappings. The clear-data confirmation lists file/result/template/rule counts.
+
+After **Ready for offline use** appears, the installed app can reload and process spreadsheets offline. Updates wait for your confirmation; refresh is disabled during a merge. Large batches on mobile or low-memory devices show an optional warning. Failed exports keep processed rows for **Retry export**.
 
 Use **Source rules → Export rule library** to back up the current output template, template library, and saved source rules as JSON. **Import rule library** restores a backup by replacing the current template, template library, and rules.
 

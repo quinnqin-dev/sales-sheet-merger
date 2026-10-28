@@ -8,6 +8,7 @@
     "duplicate_rows": 0,
     "duplicate_extra": 0,
     "duplicate_groups": 0,
+    "duplicate_dropped": 0,
     "totals": {
       "c1": "10000",
       "c2": "10000",
@@ -28,8 +29,8 @@
       }
     ]
   },
-  "seconds": 61.62670000000298,
+  "seconds": 60.0565,
   "bytes": 2649266,
-  "workerHeapAndBackingPeakBytes": 116522275,
+  "workerHeapAndBackingPeakBytes": 97528067,
   "sampleMs": 50
 }

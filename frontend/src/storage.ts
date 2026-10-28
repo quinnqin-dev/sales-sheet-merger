@@ -110,10 +110,20 @@ export async function restore() {
     const jobs = await db.getAllFromIndex("jobs", "batch", workspace.batch);
     for (const job of jobs) {
       if (job.status === "running") {
-        job.status = job.summary && job.phase_code === "phase_exporting" ? "export-failed" : "interrupted";
-        job.error_code = job.status === "export-failed" ? "browser.exportError" : "browser.interrupted";
+        job.status =
+          job.summary && job.phase_code === "phase_exporting"
+            ? "export-failed"
+            : "interrupted";
+        job.error_code =
+          job.status === "export-failed"
+            ? "browser.exportError"
+            : "browser.interrupted";
         job.output = undefined;
-        await db.put("jobs", job);
+        try {
+          await db.put("jobs", job);
+        } catch {
+          /* A full quota must not hide saved rows or prevent opening the workspace. */
+        }
       }
     }
     const latest = jobs.find((job) => job.id === workspace.job?.id);
@@ -143,17 +153,28 @@ export async function getRows(
   )
     throw new LocalizedError("invalid_pagination");
   const db = await database();
-  const job=await db.get("jobs",id);
+  const job = await db.get("jobs", id);
   const tx = db.transaction("rows");
   const index = tx.store.index(duplicates ? "duplicate" : "kind");
   const key = duplicates ? [id, 1] : [id, kind];
-  const storedTotal=await index.count(key as [string,number]&[string,string]);
-  const total=!duplicates&&kind==='valid'?job?.summary?.valid??storedTotal:storedTotal;
-  let cursor=await index.openCursor(key as [string,number]&[string,string]);
-  const rows:StoredRow[]=[];let offset=(page-1)*50;
-  while(cursor&&rows.length<50){
-    if(duplicates||kind!=='valid'||!cursor.value.dropped){if(offset)offset--;else rows.push(cursor.value);}
-    cursor=await cursor.continue();
+  const storedTotal = await index.count(
+    key as [string, number] & [string, string],
+  );
+  const total =
+    !duplicates && kind === "valid"
+      ? (job?.summary?.valid ?? storedTotal)
+      : storedTotal;
+  let cursor = await index.openCursor(
+    key as [string, number] & [string, string],
+  );
+  const rows: StoredRow[] = [];
+  let offset = (page - 1) * 50;
+  while (cursor && rows.length < 50) {
+    if (duplicates || kind !== "valid" || !cursor.value.dropped) {
+      if (offset) offset--;
+      else rows.push(cursor.value);
+    }
+    cursor = await cursor.continue();
   }
   return { rows, total };
 }

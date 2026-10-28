@@ -1,13 +1,20 @@
 import * as XLSX from "xlsx";
 import * as cptable from "xlsx/dist/cpexcel.full.mjs";
 import Papa from "papaparse";
-import {unzipSync} from "fflate";
-import type {Sheet,SourceFile} from "./domain.ts";
-import {LocalizedError} from "./i18n-core.ts";
-import {normal} from "./casefold.ts";
-import {blank,wire,problem,type InputBook,type InputRow,type CellValue} from "./engine.ts";
+import { unzipSync } from "fflate";
+import type { Sheet, SourceFile } from "./domain.ts";
+import { LocalizedError } from "./i18n-core.ts";
+import { normal } from "./casefold.ts";
+import {
+  blank,
+  wire,
+  problem,
+  type InputBook,
+  type InputRow,
+  type CellValue,
+} from "./engine.ts";
 XLSX.set_cptable(cptable);
-const MAX_ROWS=100000;
+const MAX_ROWS = 100000;
 export async function readBook(
   file: File,
   encoding = "utf-8-sig",

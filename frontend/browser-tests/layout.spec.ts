@@ -1,7 +1,8 @@
+import {seed} from "./fixtures";
 import {test,expect} from '@playwright/test';
 import {mkdirSync} from 'node:fs';
 const columns=[{id:'id',name:'Student ID',type:'text',required:true},{id:'score',name:'Score',type:'number',required:true}];
-for(const width of [360,412,600,1024,1440]) test(`layout ${width}`,async({page},info)=>{
+for(const width of [320,360,412,600,1024,1440]) test(`layout ${width}`,async({page},info)=>{
  test.skip(info.project.name!=='chromium');
  await page.setViewportSize({width,height:1000});await page.goto('/');
  await expect(page.getByRole('heading',{name:'Merge spreadsheets',exact:true})).toBeVisible();
@@ -17,7 +18,9 @@ for(const width of [360,412,600,1024,1440]) test(`layout ${width}`,async({page},
  await page.reload();await expect(page.getByRole('heading',{name:'Choose this batch’s output template',exact:true})).toBeVisible();
  const path='../docs/verification/screenshots';mkdirSync(path,{recursive:true});
  const check=async(name:string)=>{
+  await page.locator('.toast').waitFor({state:'hidden'});
   expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true);
+  if(width<=560&&name!=='template-editor'){const container=await page.locator('.steps').boundingBox(),current=await page.locator('.step.current').boundingBox();expect(current!.x).toBeGreaterThanOrEqual(container!.x);expect(current!.x+current!.width).toBeLessThanOrEqual(container!.x+container!.width+1);}
   for(const button of await page.locator('main .btn:visible').all()){
    const box=await button.boundingBox();expect(box!.x).toBeGreaterThanOrEqual(0);expect(box!.x+box!.width).toBeLessThanOrEqual(width+1);
   }
@@ -26,4 +29,6 @@ for(const width of [360,412,600,1024,1440]) test(`layout ${width}`,async({page},
  await check('template-confirm');
  await page.getByRole('button',{name:'Output template',exact:true}).click();await page.getByRole('button',{name:'Edit template',exact:true}).click();
  await expect(page.getByLabel('Column 1 name',{exact:true})).toBeVisible();await check('template-editor');
+ await seed(page,3,'done',5);await expect(page.getByRole('button',{name:'Download merged Excel',exact:true})).toBeVisible();await check('results');
+ if(width<=560)expect(await page.locator('.table-scroll td').first().evaluate(el=>getComputedStyle(el).position)).toBe('sticky');
 });

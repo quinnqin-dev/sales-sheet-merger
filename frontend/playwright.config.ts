@@ -1,5 +1,6 @@
 import { defineConfig, chromium } from "@playwright/test";
 export default defineConfig({
+  reporter: [["list"],["json",{outputFile:"../docs/verification/browser-results.json"}]],
   testDir:"./browser-tests", timeout:180000, expect:{timeout:15000}, workers:1,
   use:{baseURL:"http://127.0.0.1:4178", viewport:{width:1440,height:1000}, trace:"retain-on-failure"},
   projects:[

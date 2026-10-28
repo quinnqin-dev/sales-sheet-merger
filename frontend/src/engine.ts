@@ -31,9 +31,18 @@ export function problem(error: unknown, fallback = "file_unreadable") {
     error_params: error instanceof LocalizedError ? error.params : {},
   };
 }
-export const loadReader=()=>import('./reader.ts');
-export async function readBook(file:File,encoding='utf-8-sig'):Promise<InputBook>{return (await loadReader()).readBook(file,encoding);}
-export async function inspectFile(...args:Parameters<typeof import('./reader.ts')['inspectFile']>){return (await loadReader()).inspectFile(...args);}
+export const loadReader = () => import("./reader.ts");
+export async function readBook(
+  file: File,
+  encoding = "utf-8-sig",
+): Promise<InputBook> {
+  return (await loadReader()).readBook(file, encoding);
+}
+export async function inspectFile(
+  ...args: Parameters<(typeof import("./reader.ts"))["inspectFile"]>
+) {
+  return (await loadReader()).inspectFile(...args);
+}
 export function validateRule(
   rule: Rule,
   template: Template,

@@ -1,0 +1,5 @@
+unzip -l export-single-sheet.xlsx (worksheet entries)
+xl/worksheets/sheet1.xml
+
+xl/workbook.xml
+<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Merged Data" sheetId="1" r:id="rId1"/></sheets></workbook>

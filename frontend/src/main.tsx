@@ -14,7 +14,14 @@ import {
   LocalizedError,
   type Message,
 } from "./i18n";
-import React, { useEffect, useRef, useState, lazy, Suspense } from "react";
+import React, {
+  useEffect,
+  useRef,
+  useState,
+  useCallback,
+  lazy,
+  Suspense,
+} from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowLeft,
@@ -43,9 +50,18 @@ import {
   X,
 } from "lucide-react";
 import "./style.css";
-const UserGuide=lazy(()=>import("./UserGuide").then(m=>({default:m.UserGuide})));
-const TemplateManager=lazy(()=>import("./TemplateManager").then(m=>({default:m.TemplateManager})));
-const TemplateSelector=lazy(()=>import("./TemplateManager").then(m=>({default:m.TemplateSelector})));
+const BackupControls = lazy(() =>
+  import("./BackupControls").then((m) => ({ default: m.BackupControls })),
+);
+const UserGuide = lazy(() =>
+  import("./UserGuide").then((m) => ({ default: m.UserGuide })),
+);
+const TemplateManager = lazy(() =>
+  import("./TemplateManager").then((m) => ({ default: m.TemplateManager })),
+);
+const TemplateSelector = lazy(() =>
+  import("./TemplateManager").then((m) => ({ default: m.TemplateSelector })),
+);
 import type { SavedTemplate } from "./template-files";
 import type { Template } from "./template-state";
 import {
@@ -161,11 +177,18 @@ function reconcileRule(rule: Rule, template: Template) {
 }
 function BrowserDataDialog({
   all,
+  inventory,
   busy,
   onCancel,
   onConfirm,
 }: {
   all: boolean;
+  inventory: {
+    files: number;
+    results: number;
+    templates: number;
+    rules: number;
+  };
   busy: boolean;
   onCancel: () => void;
   onConfirm: () => void;
@@ -191,6 +214,15 @@ function BrowserDataDialog({
         {t(all ? "browser.clearAllTitle" : "browser.newBatchTitle")}
       </h2>
       <p>{t(all ? "browser.clearAllBody" : "browser.newBatchBody")}</p>
+      {all && (
+        <ul className="clear-inventory">
+          {(["files", "results", "templates", "rules"] as const).map((item) => (
+            <li key={item}>
+              {t(`backup.clear.${item}`, { count: inventory[item] })}
+            </li>
+          ))}
+        </ul>
+      )}
       <div className="button-group">
         <button
           autoFocus
@@ -210,8 +242,17 @@ function BrowserDataDialog({
 
 function App() {
   const { t } = useI18n();
-  const [duplicatePolicy,setDuplicatePolicy]=useState<DuplicatePolicy>("keep-all");
-  const [memoryWarning,setMemoryWarning]=useState(false);
+  const [pendingImport, setPendingImport] =
+    useState<Workspace["pendingImport"]>();
+  const [inventory, setInventory] = useState({
+    files: 0,
+    results: 0,
+    templates: 0,
+    rules: 0,
+  });
+  const [duplicatePolicy, setDuplicatePolicy] =
+    useState<DuplicatePolicy>("keep-all");
+  const [memoryWarning, setMemoryWarning] = useState(false);
   const [ready, setReady] = useState(false);
   const [dataDialog, setDataDialog] = useState<"batch" | "all" | null>(null);
   const [saveState, setSaveState] = useState<"saving" | "saved" | "failed">(
@@ -222,6 +263,15 @@ function App() {
   const [templatePrompt, setTemplatePrompt] = useState(false);
   const [returnFromTemplate, setReturnFromTemplate] = useState(false);
   const [step, setStep] = useState(1);
+  const scrollStepIntoView = useCallback(
+    (node: HTMLDivElement | null) => {
+      if (node && window.matchMedia("(max-width: 560px)").matches)
+        node
+          .querySelector(".step.current")
+          ?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    },
+    [step],
+  );
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(
     null,
   );
@@ -284,9 +334,15 @@ function App() {
       .then(({ library, workspace }) => {
         setLibrary(library);
         setBatch(workspace.batch);
-        setDuplicatePolicy(workspace.duplicatePolicy??"keep-all");
+        setDuplicatePolicy(workspace.duplicatePolicy ?? "keep-all");
         setFiles(workspace.files);
         setAssignments(workspace.assignments);
+        setPendingImport(workspace.pendingImport);
+        initializeAssignments(
+          workspace.files,
+          library,
+          workspace.pendingImport,
+        );
         setStep(workspace.step);
         setSelectedTemplateId(workspace.selectedTemplateId);
         setPreview(workspace.preview);
@@ -301,10 +357,14 @@ function App() {
     if (!ready) return;
     setSaveState("saving");
     local("saveWorkspace", snapshot())
-      .then(()=>setSaveState("saved"))
-      .catch(e=>{setSaveState("failed");setError(messageFromError(e));});
+      .then(() => setSaveState("saved"))
+      .catch((e) => {
+        setSaveState("failed");
+        setError(messageFromError(e));
+      });
   }, [
     ready,
+    pendingImport,
     duplicatePolicy,
     batch,
     files,
@@ -315,15 +375,22 @@ function App() {
     job?.id,
     job?.status,
   ]);
-  useEffect(()=>{
-    if(!ready)return;
-    const warm=()=>{void local("warmReader",undefined).catch(()=>{});};
-    if("requestIdleCallback" in window){const idle=window.requestIdleCallback(warm,{timeout:2000});return()=>window.cancelIdleCallback(idle);}
-    const timer=setTimeout(warm,1000);return()=>clearTimeout(timer);
-  },[ready]);
+  useEffect(() => {
+    if (!ready) return;
+    const warm = () => {
+      void local("warmReader", undefined).catch(() => {});
+    };
+    if ("requestIdleCallback" in window) {
+      const idle = window.requestIdleCallback(warm, { timeout: 2000 });
+      return () => window.cancelIdleCallback(idle);
+    }
+    const timer = setTimeout(warm, 1000);
+    return () => clearTimeout(timer);
+  }, [ready]);
   function snapshot(): Workspace {
     return {
       batch,
+      pendingImport,
       duplicatePolicy,
       files,
       assignments,
@@ -363,7 +430,7 @@ function App() {
     };
   }, [job?.id, job?.status]);
   useEffect(() => {
-    if (!job || !["done","export-failed"].includes(job.status)) return;
+    if (!job || !["done", "export-failed"].includes(job.status)) return;
     let stopped = false;
     setLoadingRows(true);
     local("getRows", { id: job.id, kind, page, duplicates: duplicatesOnly })
@@ -389,7 +456,11 @@ function App() {
       setBusy(null);
     }
   }
-  function initializeAssignments(next: SourceFile[]) {
+  function initializeAssignments(
+    next: SourceFile[],
+    lib = library,
+    pending = pendingImport,
+  ) {
     setAssignments((old) => {
       const updated = { ...old };
       for (const f of next)
@@ -397,9 +468,26 @@ function App() {
           const k = keyFor(f, s);
           if (updated[k]) continue;
           const matches =
-            library?.rules.filter(
+            lib?.rules.filter(
               (r) => !s.error && signature(r.headers) === signature(s.headers),
             ) || [];
+          const candidates = pending?.files.filter(
+            (old) => old.name === f.name && old.size === f.size,
+          );
+          const original = candidates?.length === 1 ? candidates[0] : undefined;
+          const oldSheet = original?.sheets.find(
+            (old) =>
+              old.name === s.name &&
+              signature(old.headers) === signature(s.headers),
+          );
+          const saved =
+            original && oldSheet
+              ? pending?.assignments[`${original.id}:${s.name}`]
+              : undefined;
+          if (saved && !s.error) {
+            updated[k] = { ...saved, confirmed: false };
+            continue;
+          }
           updated[k] = {
             enabled: f.sheets.find((x) => !x.error)?.name === s.name,
             rule: matches.length === 1 ? matches[0] : null,
@@ -427,6 +515,15 @@ function App() {
       });
       setFiles(next);
       initializeAssignments(next);
+      if (pendingImport) {
+        const remaining = pendingImport.files.filter(
+          (old) =>
+            !next.some((f) => f.name === old.name && f.size === old.size),
+        );
+        setPendingImport(
+          remaining.length ? { ...pendingImport, files: remaining } : undefined,
+        );
+      }
       setExpanded(
         next.find((f) => f.error || f.sheets.some((s) => s.error))?.id || "",
       );
@@ -497,9 +594,16 @@ function App() {
       setStep(4);
     });
   }
-  const estimate=memoryEstimate(rowCount,template?.columns.length??0,navigator);
-  async function start(accepted=false) {
-    if(!accepted&&estimate.warn){setMemoryWarning(true);return;}
+  const estimate = memoryEstimate(
+    rowCount,
+    template?.columns.length ?? 0,
+    navigator,
+  );
+  async function start(accepted = false) {
+    if (!accepted && estimate.warn) {
+      setMemoryWarning(true);
+      return;
+    }
     await action(msg("ui.startingMerge"), async () => {
       setKind("valid");
       setPage(1);
@@ -545,6 +649,7 @@ function App() {
     });
   }
   function reset() {
+    setPendingImport(undefined);
     setDuplicatePolicy("keep-all");
     setStep(1);
     setFiles([]);
@@ -638,10 +743,20 @@ function App() {
     );
   return (
     <div className="app-shell">
-      {memoryWarning&&<MemoryWarning bytes={estimate.bytes} onCancel={()=>setMemoryWarning(false)} onContinue={()=>{setMemoryWarning(false);void start(true);}}/>}
+      {memoryWarning && (
+        <MemoryWarning
+          bytes={estimate.bytes}
+          onCancel={() => setMemoryWarning(false)}
+          onContinue={() => {
+            setMemoryWarning(false);
+            void start(true);
+          }}
+        />
+      )}
       {dataDialog && (
         <BrowserDataDialog
           all={dataDialog === "all"}
+          inventory={inventory}
           busy={!!busy}
           onCancel={() => setDataDialog(null)}
           onConfirm={() => void clearBrowserData(dataDialog === "all")}
@@ -715,7 +830,12 @@ function App() {
         <button
           className="nav-item"
           disabled={!!busy || running}
-          onClick={() => setDataDialog("all")}
+          onClick={() =>
+            void action(msg("backup.inspecting"), async () => {
+              setInventory(await local("dataInventory", undefined));
+              setDataDialog("all");
+            })
+          }
         >
           <Trash2 size={17} />
           {t("browser.clearAll")}
@@ -750,989 +870,1095 @@ function App() {
             </span>
           </div>
         </header>
-        <OfflineStatus running={running} />
-        <main><Suspense fallback={<p role="status">{t("ui.loading")}</p>}>
-          {error && (
-            <div role="alert" className="alert error">
-              <CircleAlert size={18} />
-              <span>{renderMessage(error)}</span>
-              <button
-                aria-label={t("ui.dismissNotification")}
-                onClick={() => setError(null)}
-              >
-                <X size={16} />
-              </button>
-            </div>
-          )}
-          {notice && (
-            <div role="status" className="toast">
-              <CheckCheck size={18} />
-              {renderMessage(notice)}
-            </div>
-          )}
-          {view === "merge" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    {t("ui.oneStandardForEverySource")}
+        <OfflineStatus running={running || !!busy} />
+        <main>
+          <Suspense fallback={<p role="status">{t("ui.loading")}</p>}>
+            {error && (
+              <div role="alert" className="alert error">
+                <CircleAlert size={18} />
+                <span>{renderMessage(error)}</span>
+                <button
+                  aria-label={t("ui.dismissNotification")}
+                  onClick={() => setError(null)}
+                >
+                  <X size={16} />
+                </button>
+              </div>
+            )}
+            {notice && (
+              <div role="status" className="toast">
+                <CheckCheck size={18} />
+                {renderMessage(notice)}
+              </div>
+            )}
+            {view === "merge" && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">
+                      {t("ui.oneStandardForEverySource")}
+                    </div>
+                    <h1>{t("ui.mergeSpreadsheets")}</h1>
+                    <p>{t("ui.turnRecordsFromDifferentSourcesInto")}</p>
                   </div>
-                  <h1>{t("ui.mergeSpreadsheets")}</h1>
-                  <p>{t("ui.turnRecordsFromDifferentSourcesInto")}</p>
-                </div>
-                {files.length > 0 && !running && (
-                  <button
-                    className="btn subtle"
-                    disabled={!!busy}
-                    onClick={() => setDataDialog("batch")}
-                  >
-                    <Plus size={16} />
-                    {t("ui.newBatch")}
-                  </button>
-                )}
-              </div>
-              <div className="steps">
-                {[
-                  t("ui.importFiles"),
-                  t("templates.confirmStep"),
-                  t("ui.configureRules"),
-                  t("ui.previewCheck"),
-                  t("ui.mergeExport"),
-                ].map((label, i) => (
-                  <React.Fragment key={label}>
+                  {files.length > 0 && !running && (
                     <button
-                      disabled={!!busy || running || i + 1 > step}
-                      onClick={() => goStep(i + 1)}
-                      className={`step ${step === i + 1 ? "current" : ""} ${step > i + 1 ? "complete" : ""}`}
+                      className="btn subtle"
+                      disabled={!!busy}
+                      onClick={() => setDataDialog("batch")}
                     >
-                      <span>
-                        {step > i + 1 ? (
-                          <Check size={15} />
-                        ) : (
-                          String(i + 1).padStart(2, "0")
-                        )}
-                      </span>
-                      {label}
+                      <Plus size={16} />
+                      {t("ui.newBatch")}
                     </button>
-                    {i < 4 && (
-                      <div
-                        className={`step-line ${step > i + 1 ? "filled" : ""}`}
-                      />
-                    )}
-                  </React.Fragment>
-                ))}
-              </div>
-              {step === 1 && (
-                <div className="import-layout">
-                  <section>
-                    <div
-                      className={`dropzone ${dragging ? "dragging" : ""} ${busy ? "is-busy" : ""}`}
-                      onDragOver={(e) => {
-                        e.preventDefault();
-                        setDragging(true);
-                      }}
-                      onDragLeave={() => setDragging(false)}
-                      onDrop={(e) => {
-                        e.preventDefault();
-                        setDragging(false);
-                        void upload(e.dataTransfer.files);
-                      }}
-                    >
-                      <span className="upload-symbol">
-                        {busy ? (
-                          <LoaderCircle size={30} className="spin" />
-                        ) : (
-                          <Upload size={30} />
-                        )}
-                      </span>
-                      <h2>
-                        {renderMessage(busy) || t("ui.dropYourFilesHere")}
-                      </h2>
-                      <p>{t("ui.selectMultipleExcelAndCsvFilesFrom")}</p>
-                      <button
-                        className="btn primary"
-                        disabled={!!busy}
-                        onClick={() => uploadRef.current?.click()}
-                      >
-                        <Plus size={17} />
-                        {t("ui.chooseFiles")}
-                      </button>
-                      <div className="upload-limits">
-                        .xlsx / .xls / .csv <span>·</span>
-                        {t("ui.upTo30Files")} <span>·</span>
-                        {t("ui.100000RowsTotal")}
-                      </div>
-                      <input
-                        ref={uploadRef}
-                        aria-label={t("ui.uploadFiles")}
-                        type="file"
-                        multiple
-                        accept=".xlsx,.xls,.csv"
-                        hidden
-                        onChange={(e) => void upload(e.target.files)}
-                      />
-                    </div>
-                    <div className="section-heading">
-                      <h2>
-                        {t("ui.importedFiles")}{" "}
-                        <span className="count-pill">{files.length}</span>
-                      </h2>
-                      {files.length > 0 && (
-                        <span>{t("ui.selectTheWorksheetsToMerge")}</span>
-                      )}
-                    </div>
-                    {!files.length ? (
-                      <div className="empty-files">
-                        <FileSpreadsheet size={24} />
-                        <div>
-                          {t("ui.noFilesImportedYet")}
-                          <small>
-                            {t("ui.startWithSpreadsheetsFromAnySource")}
-                          </small>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="file-list">
-                        {files.map((f) => (
-                          <div
-                            className={`file-card ${f.error ? "has-error" : ""}`}
-                            key={f.id}
-                          >
-                            <div className="file-title">
-                              <span className="file-icon">
-                                <FileSpreadsheet size={22} />
-                              </span>
-                              <div className="file-name">
-                                <strong title={f.name}>{f.name}</strong>
-                                <small>
-                                  {(f.size / 1024).toFixed(1)} KB <span>·</span>{" "}
-                                  {f.error
-                                    ? t("ui.readFailed")
-                                    : t("ui.worksheets", {
-                                        p0: f.sheets.length,
-                                      })}
-                                </small>
-                              </div>
-                              <span
-                                className={`badge ${f.error ? "red" : "green"}`}
-                              >
-                                {f.error
-                                  ? t("ui.needsAttention")
-                                  : t("ui.ready")}
-                              </span>
-                              <button
-                                className="icon-btn"
-                                aria-label={t("ui.expand", { p0: f.name })}
-                                onClick={() =>
-                                  setExpanded(expanded === f.id ? "" : f.id)
-                                }
-                              >
-                                <ChevronDown
-                                  className={expanded === f.id ? "rotated" : ""}
-                                  size={17}
-                                />
-                              </button>
-                              <button
-                                className="icon-btn"
-                                disabled={!!busy}
-                                aria-label={t("ui.remove", { p0: f.name })}
-                                onClick={() => void removeFile(f)}
-                              >
-                                <X size={17} />
-                              </button>
-                            </div>
-                            {f.error && (
-                              <p className="inline-error">{errorMessage(f)}</p>
-                            )}
-                            {f.sheets.map((s) => (
-                              <label className="sheet-check" key={s.name}>
-                                <input
-                                  type="checkbox"
-                                  disabled={!!busy || !!s.error}
-                                  checked={
-                                    assignments[keyFor(f, s)]?.enabled || false
-                                  }
-                                  onChange={(e) =>
-                                    setAssignments((old) => ({
-                                      ...old,
-                                      [keyFor(f, s)]: {
-                                        ...old[keyFor(f, s)],
-                                        enabled: e.target.checked,
-                                      },
-                                    }))
-                                  }
-                                />
-                                <Table2 size={14} />
-                                <span>{s.name}</span>
-                                {s.error ? (
-                                  <small className="danger-text">
-                                    {errorMessage(s)}
-                                  </small>
-                                ) : (
-                                  <small>
-                                    {t("ui.sheetDimensions", {
-                                      rows: fmt(s.row_count),
-                                      columns: s.headers.length,
-                                    })}
-                                  </small>
-                                )}
-                              </label>
-                            ))}
-                            {expanded === f.id && (
-                              <div className="file-options">
-                                {f.name.toLowerCase().endsWith(".csv") && (
-                                  <label>
-                                    {t("ui.characterEncoding")}
-                                    <select
-                                      disabled={!!busy}
-                                      value={f.encoding}
-                                      onChange={(e) =>
-                                        void inspect(
-                                          f,
-                                          e.target.value,
-                                          f.header_rows,
-                                        )
-                                      }
-                                    >
-                                      <option value="utf-8-sig">UTF-8</option>
-                                      <option value="gb18030">
-                                        {t("ui.gb18030LegacyChineseSystems")}
-                                      </option>
-                                    </select>
-                                  </label>
-                                )}
-                                {f.sheets.map((s) => (
-                                  <div className="source-preview" key={s.name}>
-                                    <div className="source-preview-heading">
-                                      <strong>{s.name}</strong>
-                                      <label>
-                                        {t("ui.headerRow")}
-                                        <input
-                                          aria-label={t("ui.headerRow57", {
-                                            p0: s.name,
-                                          })}
-                                          type="number"
-                                          min="1"
-                                          max="1000"
-                                          defaultValue={s.header_row}
-                                          key={`${s.name}-${s.header_row}`}
-                                          onBlur={(e) => {
-                                            if (
-                                              Number(e.target.value) !==
-                                              s.header_row
-                                            )
-                                              void inspect(f, f.encoding, {
-                                                ...f.header_rows,
-                                                [s.name]: Number(
-                                                  e.target.value,
-                                                ),
-                                              });
-                                          }}
-                                          disabled={!!busy}
-                                        />
-                                      </label>
-                                    </div>
-                                    {!s.error && (
-                                      <div className="table-scroll">
-                                        <table>
-                                          <thead>
-                                            <tr>
-                                              {s.headers.map((h, i) => (
-                                                <th key={i}>{h}</th>
-                                              ))}
-                                            </tr>
-                                          </thead>
-                                          <tbody>
-                                            {s.sample.slice(0, 5).map((r) => (
-                                              <tr key={r.row}>
-                                                {s.headers.map((_, i) => (
-                                                  <td key={i}>
-                                                    {show(r.values[i])}
-                                                  </td>
-                                                ))}
-                                              </tr>
-                                            ))}
-                                          </tbody>
-                                        </table>
-                                      </div>
-                                    )}
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </section>
-                  <aside className="batch-sidebar">
-                    <div className="panel overview">
-                      <div className="panel-title">
-                        <ClipboardList size={18} />
-                        <h3>{t("ui.batchOverview")}</h3>
-                      </div>
-                      <div className="big-stat">
-                        {fmt(rowCount)}
-                        <span>{t("ui.rowsToMerge")}</span>
-                      </div>
-                      <div className="overview-row">
-                        <span>{t("ui.importedFiles")}</span>
-                        <strong>{files.length} / 30</strong>
-                      </div>
-                      <div className="overview-row">
-                        <span>{t("ui.selectedWorksheets")}</span>
-                        <strong>{selections.length}</strong>
-                      </div>
-                      <div className="overview-row">
-                        <span>{t("ui.outputFormat")}</span>
-                        <strong>
-                          {selectedTemplate
-                            ? t("ui.outputColumns", {
-                                count: selectedTemplate.template.columns.length,
-                              })
-                            : t("templates.notSelected")}
-                        </strong>
-                      </div>
-                      <div className="template-label">
-                        <Table2 size={15} />
-                        {selectedTemplate
-                          ? selectedTemplate.template.name
-                          : t("templates.notSelected")}
-                      </div>
-                      {rowCount > 100000 && (
-                        <p className="inline-error">
-                          {t("ui.moreThan100000RowsSelectLess")}
-                        </p>
-                      )}
-                      <button
-                        className="btn primary full"
-                        disabled={blockers || !!busy}
-                        onClick={() => {
-                          setError(null);
-                          goStep(2);
-                        }}
-                      >
-                        {t("templates.nextConfirm")}
-                        <ArrowRight size={16} />
-                      </button>
-                    </div>
-                    <div className="tip-card">
-                      <Sparkles size={19} />
-                      <h3>{t("ui.configureOnceReuseNextTime")}</h3>
-                      <p>{t("ui.saveAMappingForEachSourceMatching")}</p>
-                    </div>
-                    <div className="quiet-note">
-                      <LockKeyhole size={14} />
-                      <span>
-                        {t("ui.yourOriginalFilesStayUnchanged")}
-                        <br />
-                        {t("ui.theMergedResultIsSavedAsA")}
-                      </span>
-                    </div>
-                  </aside>
+                  )}
                 </div>
-              )}
-              {step === 2 && (
-                <TemplateSelector
-                  templates={savedTemplates}
-                  selectedId={selectedTemplateId}
-                  busy={!!busy}
-                  onSelect={(id) => {
-                    if (id !== selectedTemplateId) {
-                      setSelectedTemplateId(id);
-                      invalidateTemplate();
-                    }
-                  }}
-                  onManage={manageTemplates}
-                  onBack={() => setStep(1)}
-                  onConfirm={() => void confirmTemplate()}
-                />
-              )}
-              {step === 3 && (
-                <>
-                  <div className="panel section-panel">
-                    <div className="section-heading">
-                      <div>
-                        <h2>{t("ui.confirmTheMappingForEachSource")}</h2>
-                        <p>{t("ui.rulesAreSuggestedByHeaderNamesReview")}</p>
-                      </div>
-                      <span className="badge green">
-                        {t("ui.confirmedCount", {
-                          confirmed,
-                          total: selections.length,
-                        })}
-                      </span>
-                    </div>
-                    {selections.map((s) => (
-                      <div className="rule-assignment" key={s.key}>
-                        <span className="file-icon">
-                          <FileSpreadsheet size={21} />
-                        </span>
-                        <div className="rule-source">
-                          <strong>{s.file.name}</strong>
-                          <small>
-                            {t("ui.sheetRowCount", {
-                              sheet: s.sheet.name,
-                              rows: fmt(s.sheet.row_count),
-                            })}
-                          </small>
-                        </div>
-                        <div className="rule-picker">
-                          <select
-                            aria-label={t("ui.sourceRule", { p0: s.file.name })}
-                            value={s.assignment.rule?.id || ""}
-                            onChange={(e) => {
-                              const rule = library.rules.find(
-                                (r) => r.id === e.target.value,
-                              );
-                              setAssignments((old) => ({
-                                ...old,
-                                [s.key]: {
-                                  ...old[s.key],
-                                  rule: rule
-                                    ? reconcileRule(rule, library.template)
-                                    : null,
-                                  confirmed: false,
-                                },
-                              }));
-                            }}
-                          >
-                            <option value="">
-                              {t("ui.selectARuleOrCreateAMapping")}
-                            </option>
-                            {s.assignment.rule &&
-                              !library.rules.some(
-                                (r) => r.id === s.assignment.rule?.id,
-                              ) && (
-                                <option value={s.assignment.rule.id}>
-                                  {s.assignment.rule.name}
-                                  {t("ui.thisBatchOnly")}
-                                </option>
-                              )}
-                            {library.rules
-                              .filter(
-                                (r) =>
-                                  signature(r.headers) ===
-                                  signature(s.sheet.headers),
-                              )
-                              .map((r) => (
-                                <option key={r.id} value={r.id}>
-                                  {r.name}
-                                </option>
-                              ))}
-                          </select>
-                          <small>
-                            {s.assignment.confirmed ? (
-                              <span className="success-text">
-                                {t("ui.mappingConfirmed")}
-                              </span>
-                            ) : s.assignment.rule ? (
-                              t("ui.suggestedMatchOpenItToReviewAnd")
-                            ) : (
-                              t("ui.noUniqueMatchConfigureAMapping")
-                            )}
-                          </small>
-                        </div>
-                        <button
-                          className={`btn ${s.assignment.confirmed ? "subtle" : "secondary"}`}
-                          onClick={() =>
-                            setEditor({
-                              key: s.key,
-                              rule: reconcileRule(
-                                s.assignment.rule ||
-                                  newRule(
-                                    s.sheet.headers,
-                                    library.template,
-                                    s.file.name.replace(/\.[^.]+$/, "") +
-                                      t("ui.rule"),
-                                  ),
-                                library.template,
-                              ),
-                            })
-                          }
-                        >
-                          {s.assignment.confirmed ? (
+                <div className="steps" ref={scrollStepIntoView}>
+                  {[
+                    t("ui.importFiles"),
+                    t("templates.confirmStep"),
+                    t("ui.configureRules"),
+                    t("ui.previewCheck"),
+                    t("ui.mergeExport"),
+                  ].map((label, i) => (
+                    <React.Fragment key={label}>
+                      <button
+                        disabled={!!busy || running || i + 1 > step}
+                        onClick={() => goStep(i + 1)}
+                        className={`step ${step === i + 1 ? "current" : ""} ${step > i + 1 ? "complete" : ""}`}
+                      >
+                        <span>
+                          {step > i + 1 ? (
                             <Check size={15} />
                           ) : (
-                            <Settings2 size={15} />
-                          )}{" "}
-                          {s.assignment.confirmed
-                            ? t("ui.viewMapping")
-                            : t("ui.configureConfirm")}
-                        </button>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="wizard-footer">
-                    <button className="btn subtle" onClick={() => goStep(2)}>
-                      <ArrowLeft size={16} />
-                      {t("templates.backToConfirmation")}
-                    </button>
-                    <button
-                      className="btn primary"
-                      disabled={
-                        confirmed !== selections.length || blockers || !!busy
-                      }
-                      onClick={() => void loadPreview()}
-                    >
-                      {renderMessage(busy) || t("ui.previewConvertedData")}
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
-                </>
-              )}
-              {step === 4 && (
-                <>
-                  <div className="panel section-panel">
-                    <div className="section-heading">
-                      <div>
-                        <h2>{t("ui.checkTheConversionBeforeMerging")}</h2>
-                        <p>{t("ui.previewCount", { count: fmt(rowCount) })}</p>
-                      </div>
-                      <span className="badge neutral">{t("ui.preview")}</span>
-                    </div>
-                    <ResultTable rows={preview} template={library.template} />
-                    <div className="preview-note">
-                      <CircleAlert size={16} />
-                      {t("ui.problemRowsAreIsolatedValidRowsCan")}
-                    </div>
-                  </div>
-                  <div className="panel section-panel duplicate-policy">
-                    <label htmlFor="duplicate-policy">{t("duplicates.label")}</label>
-                    <select id="duplicate-policy" value={duplicatePolicy} onChange={e=>setDuplicatePolicy(e.target.value as DuplicatePolicy)}>
-                      {(["keep-all","keep-first","keep-last"] as const).map(policy=><option key={policy} value={policy}>{t(`duplicates.${policy}`)}</option>)}
-                    </select><p>{t("duplicates.before")}</p>
-                  </div>
-                  <div className="wizard-footer">
-                    <button className="btn subtle" onClick={() => setStep(3)}>
-                      <ArrowLeft size={16} />
-                      {t("ui.backToRules")}
-                    </button>
-                    <button
-                      className="btn primary"
-                      disabled={!!busy}
-                      onClick={() => void start()}
-                    >
-                      <Layers3 size={17} />
-                      {renderMessage(busy) || t("ui.startMerge")}
-                    </button>
-                  </div>
-                </>
-              )}
-              {step === 5 && job && (
-                <>
-                  {running ? (
-                    <div className="panel processing">
-                      <LoaderCircle size={40} className="spin" />
-                      <h2>{t(job.phase_code)}</h2>
-                      <p>
-                        {t("ui.processedCount", {
-                          processed: fmt(job.processed),
-                          total: fmt(job.total),
-                        })}
-                      </p>
-                      <div className="progress-track">
+                            String(i + 1).padStart(2, "0")
+                          )}
+                        </span>
+                        {label}
+                      </button>
+                      {i < 4 && (
                         <div
-                          style={{
-                            width: `${Math.min(100, job.total ? (job.processed / job.total) * 100 : 100)}%`,
-                          }}
+                          className={`step-line ${step > i + 1 ? "filled" : ""}`}
+                        />
+                      )}
+                    </React.Fragment>
+                  ))}
+                </div>
+                {step === 1 && pendingImport && (
+                  <div className="panel section-panel backup-pending">
+                    <h2>{t("backup.reselect")}</h2>
+                    <p>{t("backup.reselectBody")}</p>
+                    <ul>
+                      {pendingImport.files.map((file) => (
+                        <li key={file.id}>
+                          {file.name} · {fmt(file.size)} {t("backup.bytes")}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+                {step === 1 && (
+                  <div className="import-layout">
+                    <section>
+                      <div
+                        className={`dropzone ${dragging ? "dragging" : ""} ${busy ? "is-busy" : ""}`}
+                        onDragOver={(e) => {
+                          e.preventDefault();
+                          setDragging(true);
+                        }}
+                        onDragLeave={() => setDragging(false)}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          setDragging(false);
+                          void upload(e.dataTransfer.files);
+                        }}
+                      >
+                        <span className="upload-symbol">
+                          {busy ? (
+                            <LoaderCircle size={30} className="spin" />
+                          ) : (
+                            <Upload size={30} />
+                          )}
+                        </span>
+                        <h2>
+                          {renderMessage(busy) || t("ui.dropYourFilesHere")}
+                        </h2>
+                        <p>{t("ui.selectMultipleExcelAndCsvFilesFrom")}</p>
+                        <button
+                          className="btn primary"
+                          disabled={!!busy}
+                          onClick={() => uploadRef.current?.click()}
+                        >
+                          <Plus size={17} />
+                          {t("ui.chooseFiles")}
+                        </button>
+                        <div className="upload-limits">
+                          .xlsx / .xls / .csv <span>·</span>
+                          {t("ui.upTo30Files")} <span>·</span>
+                          {t("ui.100000RowsTotal")}
+                        </div>
+                        <input
+                          ref={uploadRef}
+                          aria-label={t("ui.uploadFiles")}
+                          type="file"
+                          multiple
+                          accept=".xlsx,.xls,.csv"
+                          hidden
+                          onChange={(e) => void upload(e.target.files)}
                         />
                       </div>
-                      <span>{t("ui.keepTheToolRunningDownloadTheResult")}</span>
-                    </div>
-                  ) : ["failed", "interrupted"].includes(job.status) ? (
-                    <div className="panel processing">
-                      <CircleAlert size={36} />
-                      <h2>{t("ui.thisMergeCouldNotBeCompleted")}</h2>
-                      <p>{errorMessage(job)}</p>
-                      <button
-                        className="btn secondary"
-                        onClick={() => setStep(3)}
-                      >
-                        {t("ui.backToCheckRules")}
-                      </button>
-                    </div>
-                  ) : (
-                    job.summary && (
-                      <>
-                        <div className="result-banner">
-                          <span className="result-check">
-                            <CheckCheck size={26} />
-                          </span>
+                      <div className="section-heading">
+                        <h2>
+                          {t("ui.importedFiles")}{" "}
+                          <span className="count-pill">{files.length}</span>
+                        </h2>
+                        {files.length > 0 && (
+                          <span>{t("ui.selectTheWorksheetsToMerge")}</span>
+                        )}
+                      </div>
+                      {!files.length ? (
+                        <div className="empty-files">
+                          <FileSpreadsheet size={24} />
                           <div>
-                            <h2>{t(job.status==="export-failed"?"browser.exportFailedTitle":"ui.mergeCompleteYourResultIsReady")}</h2>
-                            <p>
-                              {t("ui.resultSources", {
-                                files: files.length,
-                                sheets: selections.length,
-                              })}
-                            </p>
+                            {t("ui.noFilesImportedYet")}
+                            <small>
+                              {t("ui.startWithSpreadsheetsFromAnySource")}
+                            </small>
                           </div>
-                          <button
-                            className="btn primary"
-                            disabled={!!busy}
-                            onClick={() =>
-                              void action(
-                                msg("browser.preparingDownload"),
-                                async () => {
-                                  if(job.status==="export-failed")setJob(await local("retryExport",{id:job.id}));else await downloadResult(job.id);
-                                },
-                              )
-                            }
-                          >
-                            <Download size={17} />
-                            {t(job.status==="export-failed"?"browser.retryExport":"ui.downloadMergedExcel")}
-                          </button>
                         </div>
-                        {job.status==="export-failed"&&<p role="alert" className="alert error">{errorMessage(job)}</p>}
-                        <div className="result-stats">
-                          {[
-                            { label: t("ui.rowsRead"), n: job.summary.read },
-                            { label: t("ui.validRows"), n: job.summary.valid },
-                            {
-                              label: t("ui.problemRowsIsolated"),
-                              n: job.summary.issues,
-                            },
-                            {
-                              label: t("ui.duplicateGroupRowsRetained"),
-                              n: job.summary.duplicate_rows,
-                            },
-                          ].map((s, i) => (
+                      ) : (
+                        <div className="file-list">
+                          {files.map((f) => (
                             <div
-                              className={`panel result-stat stat-${i}`}
-                              key={s.label}
+                              className={`file-card ${f.error ? "has-error" : ""}`}
+                              key={f.id}
                             >
-                              <span>{s.label}</span>
-                              <strong>{fmt(s.n)}</strong>
+                              <div className="file-title">
+                                <span className="file-icon">
+                                  <FileSpreadsheet size={22} />
+                                </span>
+                                <div className="file-name">
+                                  <strong title={f.name}>{f.name}</strong>
+                                  <small>
+                                    {(f.size / 1024).toFixed(1)} KB{" "}
+                                    <span>·</span>{" "}
+                                    {f.error
+                                      ? t("ui.readFailed")
+                                      : t("ui.worksheets", {
+                                          p0: f.sheets.length,
+                                        })}
+                                  </small>
+                                </div>
+                                <span
+                                  className={`badge ${f.error ? "red" : "green"}`}
+                                >
+                                  {f.error
+                                    ? t("ui.needsAttention")
+                                    : t("ui.ready")}
+                                </span>
+                                <button
+                                  className="icon-btn"
+                                  aria-label={t("ui.expand", { p0: f.name })}
+                                  onClick={() =>
+                                    setExpanded(expanded === f.id ? "" : f.id)
+                                  }
+                                >
+                                  <ChevronDown
+                                    className={
+                                      expanded === f.id ? "rotated" : ""
+                                    }
+                                    size={17}
+                                  />
+                                </button>
+                                <button
+                                  className="icon-btn"
+                                  disabled={!!busy}
+                                  aria-label={t("ui.remove", { p0: f.name })}
+                                  onClick={() => void removeFile(f)}
+                                >
+                                  <X size={17} />
+                                </button>
+                              </div>
+                              {f.error && (
+                                <p className="inline-error">
+                                  {errorMessage(f)}
+                                </p>
+                              )}
+                              {f.sheets.map((s) => (
+                                <label className="sheet-check" key={s.name}>
+                                  <input
+                                    type="checkbox"
+                                    disabled={!!busy || !!s.error}
+                                    checked={
+                                      assignments[keyFor(f, s)]?.enabled ||
+                                      false
+                                    }
+                                    onChange={(e) =>
+                                      setAssignments((old) => ({
+                                        ...old,
+                                        [keyFor(f, s)]: {
+                                          ...old[keyFor(f, s)],
+                                          enabled: e.target.checked,
+                                        },
+                                      }))
+                                    }
+                                  />
+                                  <Table2 size={14} />
+                                  <span>{s.name}</span>
+                                  {s.error ? (
+                                    <small className="danger-text">
+                                      {errorMessage(s)}
+                                    </small>
+                                  ) : (
+                                    <small>
+                                      {t("ui.sheetDimensions", {
+                                        rows: fmt(s.row_count),
+                                        columns: s.headers.length,
+                                      })}
+                                    </small>
+                                  )}
+                                </label>
+                              ))}
+                              {expanded === f.id && (
+                                <div className="file-options">
+                                  {f.name.toLowerCase().endsWith(".csv") && (
+                                    <label>
+                                      {t("ui.characterEncoding")}
+                                      <select
+                                        disabled={!!busy}
+                                        value={f.encoding}
+                                        onChange={(e) =>
+                                          void inspect(
+                                            f,
+                                            e.target.value,
+                                            f.header_rows,
+                                          )
+                                        }
+                                      >
+                                        <option value="utf-8-sig">UTF-8</option>
+                                        <option value="gb18030">
+                                          {t("ui.gb18030LegacyChineseSystems")}
+                                        </option>
+                                      </select>
+                                    </label>
+                                  )}
+                                  {f.sheets.map((s) => (
+                                    <div
+                                      className="source-preview"
+                                      key={s.name}
+                                    >
+                                      <div className="source-preview-heading">
+                                        <strong>{s.name}</strong>
+                                        <label>
+                                          {t("ui.headerRow")}
+                                          <input
+                                            aria-label={t("ui.headerRow57", {
+                                              p0: s.name,
+                                            })}
+                                            type="number"
+                                            min="1"
+                                            max="1000"
+                                            defaultValue={s.header_row}
+                                            key={`${s.name}-${s.header_row}`}
+                                            onBlur={(e) => {
+                                              if (
+                                                Number(e.target.value) !==
+                                                s.header_row
+                                              )
+                                                void inspect(f, f.encoding, {
+                                                  ...f.header_rows,
+                                                  [s.name]: Number(
+                                                    e.target.value,
+                                                  ),
+                                                });
+                                            }}
+                                            disabled={!!busy}
+                                          />
+                                        </label>
+                                      </div>
+                                      {!s.error && (
+                                        <div className="table-scroll">
+                                          <table>
+                                            <thead>
+                                              <tr>
+                                                {s.headers.map((h, i) => (
+                                                  <th key={i}>{h}</th>
+                                                ))}
+                                              </tr>
+                                            </thead>
+                                            <tbody>
+                                              {s.sample.slice(0, 5).map((r) => (
+                                                <tr key={r.row}>
+                                                  {s.headers.map((_, i) => (
+                                                    <td key={i}>
+                                                      {show(r.values[i])}
+                                                    </td>
+                                                  ))}
+                                                </tr>
+                                              ))}
+                                            </tbody>
+                                          </table>
+                                        </div>
+                                      )}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
                             </div>
                           ))}
                         </div>
-                        <p className="duplicate-policy-note">{t("duplicates.result",{policy:t(`duplicates.${job.duplicatePolicy??"keep-all"}`),extra:job.summary.duplicate_extra,dropped:job.summary.duplicate_dropped??0})}</p>
-                        <div className="panel section-panel">
-                          <div className="result-tabs">
-                            <button
-                              className={
-                                kind === "valid" && !duplicatesOnly
-                                  ? "selected"
-                                  : ""
-                              }
-                              onClick={() => {
-                                setKind("valid");
-                                setDuplicatesOnly(false);
-                                setPage(1);
-                              }}
-                            >
-                              {t("ui.validRows")}
-                              <span>{fmt(job.summary.valid)}</span>
-                            </button>
-                            <button
-                              className={kind === "issues" ? "selected" : ""}
-                              onClick={() => {
-                                setKind("issues");
-                                setDuplicatesOnly(false);
-                                setPage(1);
-                              }}
-                            >
-                              {t("ui.problemRows")}
-                              <span>{fmt(job.summary.issues)}</span>
-                            </button>
-                            <button
-                              className={duplicatesOnly ? "selected" : ""}
-                              onClick={() => {
-                                setKind("valid");
-                                setDuplicatesOnly(true);
-                                setPage(1);
-                              }}
-                            >
-                              {t("ui.duplicateWarnings")}{" "}
-                              <span>{fmt(job.summary.duplicate_rows)}</span>
-                            </button>
-                          </div>
-                          {loadingRows ? (
-                            <div className="loading-table">
-                              <LoaderCircle size={20} className="spin" />
-                              {t("ui.loadingResults")}
-                            </div>
-                          ) : (
-                            <ResultTable
-                              rows={results.rows}
-                              template={job.template}
-                              issues={kind === "issues"}
-                            />
-                          )}
-                          <div className="pagination">
-                            <span>
-                              {t("ui.paginationSummary", {
-                                count: fmt(results.total),
+                      )}
+                    </section>
+                    <aside className="batch-sidebar">
+                      <div className="panel overview">
+                        <div className="panel-title">
+                          <ClipboardList size={18} />
+                          <h3>{t("ui.batchOverview")}</h3>
+                        </div>
+                        <div className="big-stat">
+                          {fmt(rowCount)}
+                          <span>{t("ui.rowsToMerge")}</span>
+                        </div>
+                        <div className="overview-row">
+                          <span>{t("ui.importedFiles")}</span>
+                          <strong>{files.length} / 30</strong>
+                        </div>
+                        <div className="overview-row">
+                          <span>{t("ui.selectedWorksheets")}</span>
+                          <strong>{selections.length}</strong>
+                        </div>
+                        <div className="overview-row">
+                          <span>{t("ui.outputFormat")}</span>
+                          <strong>
+                            {selectedTemplate
+                              ? t("ui.outputColumns", {
+                                  count:
+                                    selectedTemplate.template.columns.length,
+                                })
+                              : t("templates.notSelected")}
+                          </strong>
+                        </div>
+                        <div className="template-label">
+                          <Table2 size={15} />
+                          {selectedTemplate
+                            ? selectedTemplate.template.name
+                            : t("templates.notSelected")}
+                        </div>
+                        {rowCount > 100000 && (
+                          <p className="inline-error">
+                            {t("ui.moreThan100000RowsSelectLess")}
+                          </p>
+                        )}
+                        <button
+                          className="btn primary full"
+                          disabled={blockers || !!busy}
+                          onClick={() => {
+                            setError(null);
+                            goStep(2);
+                          }}
+                        >
+                          {t("templates.nextConfirm")}
+                          <ArrowRight size={16} />
+                        </button>
+                      </div>
+                      <div className="tip-card">
+                        <Sparkles size={19} />
+                        <h3>{t("ui.configureOnceReuseNextTime")}</h3>
+                        <p>{t("ui.saveAMappingForEachSourceMatching")}</p>
+                      </div>
+                      <div className="quiet-note">
+                        <LockKeyhole size={14} />
+                        <span>
+                          {t("ui.yourOriginalFilesStayUnchanged")}
+                          <br />
+                          {t("ui.theMergedResultIsSavedAsA")}
+                        </span>
+                      </div>
+                    </aside>
+                  </div>
+                )}
+                {step === 2 && (
+                  <TemplateSelector
+                    templates={savedTemplates}
+                    selectedId={selectedTemplateId}
+                    busy={!!busy}
+                    onSelect={(id) => {
+                      if (id !== selectedTemplateId) {
+                        setSelectedTemplateId(id);
+                        invalidateTemplate();
+                      }
+                    }}
+                    onManage={manageTemplates}
+                    onBack={() => setStep(1)}
+                    onConfirm={() => void confirmTemplate()}
+                  />
+                )}
+                {step === 3 && (
+                  <>
+                    <div className="panel section-panel">
+                      <div className="section-heading">
+                        <div>
+                          <h2>{t("ui.confirmTheMappingForEachSource")}</h2>
+                          <p>{t("ui.rulesAreSuggestedByHeaderNamesReview")}</p>
+                        </div>
+                        <span className="badge green">
+                          {t("ui.confirmedCount", {
+                            confirmed,
+                            total: selections.length,
+                          })}
+                        </span>
+                      </div>
+                      {selections.map((s) => (
+                        <div className="rule-assignment" key={s.key}>
+                          <span className="file-icon">
+                            <FileSpreadsheet size={21} />
+                          </span>
+                          <div className="rule-source">
+                            <strong>{s.file.name}</strong>
+                            <small>
+                              {t("ui.sheetRowCount", {
+                                sheet: s.sheet.name,
+                                rows: fmt(s.sheet.row_count),
                               })}
+                            </small>
+                          </div>
+                          <div className="rule-picker">
+                            <select
+                              aria-label={t("ui.sourceRule", {
+                                p0: s.file.name,
+                              })}
+                              value={s.assignment.rule?.id || ""}
+                              onChange={(e) => {
+                                const rule = library.rules.find(
+                                  (r) => r.id === e.target.value,
+                                );
+                                setAssignments((old) => ({
+                                  ...old,
+                                  [s.key]: {
+                                    ...old[s.key],
+                                    rule: rule
+                                      ? reconcileRule(rule, library.template)
+                                      : null,
+                                    confirmed: false,
+                                  },
+                                }));
+                              }}
+                            >
+                              <option value="">
+                                {t("ui.selectARuleOrCreateAMapping")}
+                              </option>
+                              {s.assignment.rule &&
+                                !library.rules.some(
+                                  (r) => r.id === s.assignment.rule?.id,
+                                ) && (
+                                  <option value={s.assignment.rule.id}>
+                                    {s.assignment.rule.name}
+                                    {t("ui.thisBatchOnly")}
+                                  </option>
+                                )}
+                              {library.rules
+                                .filter(
+                                  (r) =>
+                                    signature(r.headers) ===
+                                    signature(s.sheet.headers),
+                                )
+                                .map((r) => (
+                                  <option key={r.id} value={r.id}>
+                                    {r.name}
+                                  </option>
+                                ))}
+                            </select>
+                            <small>
+                              {s.assignment.confirmed ? (
+                                <span className="success-text">
+                                  {t("ui.mappingConfirmed")}
+                                </span>
+                              ) : s.assignment.rule ? (
+                                t("ui.suggestedMatchOpenItToReviewAnd")
+                              ) : (
+                                t("ui.noUniqueMatchConfigureAMapping")
+                              )}
+                            </small>
+                          </div>
+                          <button
+                            className={`btn ${s.assignment.confirmed ? "subtle" : "secondary"}`}
+                            onClick={() =>
+                              setEditor({
+                                key: s.key,
+                                rule: reconcileRule(
+                                  s.assignment.rule ||
+                                    newRule(
+                                      s.sheet.headers,
+                                      library.template,
+                                      s.file.name.replace(/\.[^.]+$/, "") +
+                                        t("ui.rule"),
+                                    ),
+                                  library.template,
+                                ),
+                              })
+                            }
+                          >
+                            {s.assignment.confirmed ? (
+                              <Check size={15} />
+                            ) : (
+                              <Settings2 size={15} />
+                            )}{" "}
+                            {s.assignment.confirmed
+                              ? t("ui.viewMapping")
+                              : t("ui.configureConfirm")}
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="wizard-footer">
+                      <button className="btn subtle" onClick={() => goStep(2)}>
+                        <ArrowLeft size={16} />
+                        {t("templates.backToConfirmation")}
+                      </button>
+                      <button
+                        className="btn primary"
+                        disabled={
+                          confirmed !== selections.length || blockers || !!busy
+                        }
+                        onClick={() => void loadPreview()}
+                      >
+                        {renderMessage(busy) || t("ui.previewConvertedData")}
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  </>
+                )}
+                {step === 4 && (
+                  <>
+                    <div className="panel section-panel">
+                      <div className="section-heading">
+                        <div>
+                          <h2>{t("ui.checkTheConversionBeforeMerging")}</h2>
+                          <p>
+                            {t("ui.previewCount", { count: fmt(rowCount) })}
+                          </p>
+                        </div>
+                        <span className="badge neutral">{t("ui.preview")}</span>
+                      </div>
+                      <ResultTable rows={preview} template={library.template} />
+                      <div className="preview-note">
+                        <CircleAlert size={16} />
+                        {t("ui.problemRowsAreIsolatedValidRowsCan")}
+                      </div>
+                    </div>
+                    <div className="panel section-panel duplicate-policy">
+                      <label htmlFor="duplicate-policy">
+                        {t("duplicates.label")}
+                      </label>
+                      <select
+                        id="duplicate-policy"
+                        value={duplicatePolicy}
+                        onChange={(e) =>
+                          setDuplicatePolicy(e.target.value as DuplicatePolicy)
+                        }
+                      >
+                        {(["keep-all", "keep-first", "keep-last"] as const).map(
+                          (policy) => (
+                            <option key={policy} value={policy}>
+                              {t(`duplicates.${policy}`)}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                      <p>{t("duplicates.before")}</p>
+                    </div>
+                    <div className="wizard-footer">
+                      <button className="btn subtle" onClick={() => setStep(3)}>
+                        <ArrowLeft size={16} />
+                        {t("ui.backToRules")}
+                      </button>
+                      <button
+                        className="btn primary"
+                        disabled={!!busy}
+                        onClick={() => void start()}
+                      >
+                        <Layers3 size={17} />
+                        {renderMessage(busy) || t("ui.startMerge")}
+                      </button>
+                    </div>
+                  </>
+                )}
+                {step === 5 && job && (
+                  <>
+                    {running ? (
+                      <div className="panel processing">
+                        <LoaderCircle size={40} className="spin" />
+                        <h2>{t(job.phase_code)}</h2>
+                        <p>
+                          {t("ui.processedCount", {
+                            processed: fmt(job.processed),
+                            total: fmt(job.total),
+                          })}
+                        </p>
+                        <div className="progress-track">
+                          <div
+                            style={{
+                              width: `${Math.min(100, job.total ? (job.processed / job.total) * 100 : 100)}%`,
+                            }}
+                          />
+                        </div>
+                        <span>
+                          {t("ui.keepTheToolRunningDownloadTheResult")}
+                        </span>
+                      </div>
+                    ) : ["failed", "interrupted"].includes(job.status) ? (
+                      <div className="panel processing">
+                        <CircleAlert size={36} />
+                        <h2>{t("ui.thisMergeCouldNotBeCompleted")}</h2>
+                        <p>{errorMessage(job)}</p>
+                        <button
+                          className="btn secondary"
+                          onClick={() => setStep(3)}
+                        >
+                          {t("ui.backToCheckRules")}
+                        </button>
+                      </div>
+                    ) : (
+                      job.summary && (
+                        <>
+                          <div className="result-banner">
+                            <span className="result-check">
+                              <CheckCheck size={26} />
                             </span>
                             <div>
-                              <button
-                                className="icon-btn"
-                                disabled={page <= 1 || loadingRows}
-                                aria-label={t("ui.previousPage")}
-                                onClick={() => setPage((p) => p - 1)}
-                              >
-                                <ArrowLeft size={16} />
-                              </button>
-                              <span>
-                                {page} /{" "}
-                                {Math.max(1, Math.ceil(results.total / 50))}
-                              </span>
-                              <button
-                                className="icon-btn"
-                                disabled={
-                                  page >= Math.ceil(results.total / 50) ||
-                                  loadingRows
-                                }
-                                aria-label={t("ui.nextPage")}
-                                onClick={() => setPage((p) => p + 1)}
-                              >
-                                <ArrowRight size={16} />
-                              </button>
+                              <h2>
+                                {t(
+                                  job.status === "export-failed"
+                                    ? "browser.exportFailedTitle"
+                                    : "ui.mergeCompleteYourResultIsReady",
+                                )}
+                              </h2>
+                              <p>
+                                {t("ui.resultSources", {
+                                  files: files.length,
+                                  sheets: selections.length,
+                                })}
+                              </p>
                             </div>
-                          </div>
-                        </div>
-                        <div className="export-explanation">
-                          <FileSpreadsheet size={19} />
-                          <span>{t("ui.exportExplanation")}</span>
-                        </div>
-                      </>
-                    )
-                  )}
-                </>
-              )}
-            </>
-          )}
-          {view === "rules" && (
-            <>
-              <div className="page-heading">
-                <div>
-                  <div className="eyebrow">
-                    {t("ui.keepYourCleanupKnowHow")}
-                  </div>
-                  <h1>{t("ui.sourceRules")}</h1>
-                  <p>{t("ui.manageFieldMappingsAndCleanupSettingsFor")}</p>
-                </div>
-                <div className="button-group">
-                  <button
-                    className="btn secondary"
-                    onClick={() => importRef.current?.click()}
-                  >
-                    <Upload size={16} />
-                    {t("ui.importRuleLibrary")}
-                  </button>
-                  <button
-                    className="btn secondary"
-                    onClick={() =>
-                      downloadBlob(
-                        new Blob([JSON.stringify(library, null, 2)], {
-                          type: "application/json",
-                        }),
-                        "sheet-rules.json",
-                      )
-                    }
-                  >
-                    <Download size={16} />
-                    {t("ui.exportRuleLibrary")}
-                  </button>
-                </div>
-                <input
-                  type="file"
-                  accept=".json"
-                  ref={importRef}
-                  hidden
-                  aria-label={t("ui.importRuleLibrary")}
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (!file) return;
-                    if (
-                      !confirm(
-                        t("ui.importingWillReplaceTheCurrentTemplateAnd"),
-                      )
-                    ) {
-                      e.target.value = "";
-                      return;
-                    }
-                    await action(msg("ui.importingRuleLibrary"), async () => {
-                      if (file.size > 2 * 1024 * 1024)
-                        throw new LocalizedError("ui.theRuleFileExceeds2Mb");
-                      const data = JSON.parse(await file.text());
-                      setLibrary(await local("importConfig", data));
-                      setAssignments((old) =>
-                        Object.fromEntries(
-                          Object.entries(old).map(([k, a]) => [
-                            k,
-                            { ...a, rule: null, confirmed: false },
-                          ]),
-                        ),
-                      );
-                      setStep(1);
-                      setSelectedTemplateId(null);
-                      setPreview([]);
-                      setJob(null);
-                      setNotice(
-                        msg("ui.ruleLibraryImportedConfirmTheMappingsFor"),
-                      );
-                    });
-                    e.target.value = "";
-                  }}
-                />
-              </div>
-              <div className="panel section-panel">
-                {!library.rules.length ? (
-                  <div className="large-empty">
-                    <Settings2 size={34} />
-                    <h2>{t("ui.noSourceRulesSavedYet")}</h2>
-                    <p>{t("ui.importASpreadsheetAndSaveIts")}</p>
-                    <button
-                      className="btn primary"
-                      onClick={() => {
-                        setView("merge");
-                        setStep(1);
-                      }}
-                    >
-                      {t("ui.importFiles122")}
-                      <ArrowRight size={16} />
-                    </button>
-                  </div>
-                ) : (
-                  <table className="rules-table">
-                    <thead>
-                      <tr>
-                        <th>{t("ui.ruleName")}</th>
-                        <th>{t("ui.sourceHeaders")}</th>
-                        <th>{t("ui.targetMapping")}</th>
-                        <th>{t("ui.actions")}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {library.rules.map((r) => (
-                        <tr key={r.id}>
-                          <td>
-                            <strong>{r.name}</strong>
-                            <small>
-                              {t("ui.matchedByHeadersOnTheNextImport")}
-                            </small>
-                          </td>
-                          <td>
-                            <span className="header-tags">
-                              {r.headers.slice(0, 3).map((h) => (
-                                <span key={h}>{h}</span>
-                              ))}
-                              {r.headers.length > 3 && (
-                                <span>+{r.headers.length - 3}</span>
+                            <button
+                              className="btn primary"
+                              disabled={!!busy}
+                              onClick={() =>
+                                void action(
+                                  msg("browser.preparingDownload"),
+                                  async () => {
+                                    if (job.status === "export-failed")
+                                      setJob(
+                                        await local("retryExport", {
+                                          id: job.id,
+                                        }),
+                                      );
+                                    else await downloadResult(job.id);
+                                  },
+                                )
+                              }
+                            >
+                              <Download size={17} />
+                              {t(
+                                job.status === "export-failed"
+                                  ? "browser.retryExport"
+                                  : "ui.downloadMergedExcel",
                               )}
-                            </span>
-                          </td>
-                          <td>
-                            {t("ui.mappingColumns", {
-                              count: r.mappings.length,
+                            </button>
+                          </div>
+                          {job.status === "export-failed" && (
+                            <p role="alert" className="alert error">
+                              {errorMessage(job)}
+                            </p>
+                          )}
+                          <div className="result-stats">
+                            {[
+                              { label: t("ui.rowsRead"), n: job.summary.read },
+                              {
+                                label: t("ui.validRows"),
+                                n: job.summary.valid,
+                              },
+                              {
+                                label: t("ui.problemRowsIsolated"),
+                                n: job.summary.issues,
+                              },
+                              {
+                                label: t("ui.duplicateGroupRowsRetained"),
+                                n: job.summary.duplicate_rows,
+                              },
+                            ].map((s, i) => (
+                              <div
+                                className={`panel result-stat stat-${i}`}
+                                key={s.label}
+                              >
+                                <span>{s.label}</span>
+                                <strong>{fmt(s.n)}</strong>
+                              </div>
+                            ))}
+                          </div>
+                          <p className="duplicate-policy-note">
+                            {t("duplicates.result", {
+                              policy: t(
+                                `duplicates.${job.duplicatePolicy ?? "keep-all"}`,
+                              ),
+                              extra: job.summary.duplicate_extra,
+                              dropped: job.summary.duplicate_dropped ?? 0,
                             })}
-                          </td>
-                          <td>
-                            <div className="button-group">
+                          </p>
+                          <div className="panel section-panel">
+                            <div className="result-tabs">
                               <button
-                                className="btn subtle small"
-                                onClick={() =>
-                                  setEditor({
-                                    rule: reconcileRule(r, library.template),
-                                  })
+                                className={
+                                  kind === "valid" && !duplicatesOnly
+                                    ? "selected"
+                                    : ""
                                 }
-                              >
-                                {t("ui.edit")}
-                              </button>
-                              <button
-                                className="icon-btn"
-                                aria-label={t("ui.copy", { p0: r.name })}
-                                onClick={() =>
-                                  setEditor({
-                                    rule: {
-                                      ...reconcileRule(r, library.template),
-                                      id: crypto.randomUUID(),
-                                      name: r.name + t("ui.copy130"),
-                                    },
-                                  })
-                                }
-                              >
-                                <Copy size={16} />
-                              </button>
-                              <button
-                                className="icon-btn"
-                                disabled={!!busy}
-                                aria-label={t("ui.delete", { p0: r.name })}
                                 onClick={() => {
-                                  if (
-                                    confirm(t("ui.delete132", { p0: r.name }))
-                                  )
-                                    void action(
-                                      msg("ui.deletingRule"),
-                                      async () => {
-                                        setLibrary(
-                                          await local("deleteRule", {
-                                            id: r.id,
-                                          }),
-                                        );
-                                      },
-                                    );
+                                  setKind("valid");
+                                  setDuplicatesOnly(false);
+                                  setPage(1);
                                 }}
                               >
-                                <Trash2 size={16} />
+                                {t("ui.validRows")}
+                                <span>{fmt(job.summary.valid)}</span>
+                              </button>
+                              <button
+                                className={kind === "issues" ? "selected" : ""}
+                                onClick={() => {
+                                  setKind("issues");
+                                  setDuplicatesOnly(false);
+                                  setPage(1);
+                                }}
+                              >
+                                {t("ui.problemRows")}
+                                <span>{fmt(job.summary.issues)}</span>
+                              </button>
+                              <button
+                                className={duplicatesOnly ? "selected" : ""}
+                                onClick={() => {
+                                  setKind("valid");
+                                  setDuplicatesOnly(true);
+                                  setPage(1);
+                                }}
+                              >
+                                {t("ui.duplicateWarnings")}{" "}
+                                <span>{fmt(job.summary.duplicate_rows)}</span>
                               </button>
                             </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            {loadingRows ? (
+                              <div className="loading-table">
+                                <LoaderCircle size={20} className="spin" />
+                                {t("ui.loadingResults")}
+                              </div>
+                            ) : (
+                              <ResultTable
+                                rows={results.rows}
+                                template={job.template}
+                                issues={kind === "issues"}
+                              />
+                            )}
+                            <div className="pagination">
+                              <span>
+                                {t("ui.paginationSummary", {
+                                  count: fmt(results.total),
+                                })}
+                              </span>
+                              <div>
+                                <button
+                                  className="icon-btn"
+                                  disabled={page <= 1 || loadingRows}
+                                  aria-label={t("ui.previousPage")}
+                                  onClick={() => setPage((p) => p - 1)}
+                                >
+                                  <ArrowLeft size={16} />
+                                </button>
+                                <span>
+                                  {page} /{" "}
+                                  {Math.max(1, Math.ceil(results.total / 50))}
+                                </span>
+                                <button
+                                  className="icon-btn"
+                                  disabled={
+                                    page >= Math.ceil(results.total / 50) ||
+                                    loadingRows
+                                  }
+                                  aria-label={t("ui.nextPage")}
+                                  onClick={() => setPage((p) => p + 1)}
+                                >
+                                  <ArrowRight size={16} />
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                          <div className="export-explanation">
+                            <FileSpreadsheet size={19} />
+                            <span>{t("ui.exportExplanation")}</span>
+                          </div>
+                        </>
+                      )
+                    )}
+                  </>
                 )}
-              </div>
-            </>
-          )}
-          {view === "template" && (
-            <TemplateManager
-              templates={savedTemplates}
-              busy={!!busy}
-              initialEdit={templateEditId}
-              returnToBatch={returnFromTemplate}
-              onReturn={() => {
-                setReturnFromTemplate(false);
-                setView("merge");
-                goStep(2);
-              }}
-              perform={action}
-              validate={(document) => local("validateTemplate", document)}
-              register={registerTemplate}
-              remove={deleteTemplate}
-              onReset={resetTemplate}
-              onRegistered={(id) => {
-                setNotice(msg("templates.saved"));
-                if (returnFromTemplate) {
-                  setSelectedTemplateId(id);
-                  invalidateTemplate();
+              </>
+            )}
+            {view === "rules" && (
+              <>
+                <div className="page-heading">
+                  <div>
+                    <div className="eyebrow">
+                      {t("ui.keepYourCleanupKnowHow")}
+                    </div>
+                    <h1>{t("ui.sourceRules")}</h1>
+                    <p>{t("ui.manageFieldMappingsAndCleanupSettingsFor")}</p>
+                  </div>
+                  <div className="button-group">
+                    <button
+                      className="btn secondary"
+                      onClick={() => importRef.current?.click()}
+                    >
+                      <Upload size={16} />
+                      {t("ui.importRuleLibrary")}
+                    </button>
+                    <button
+                      className="btn secondary"
+                      onClick={() =>
+                        downloadBlob(
+                          new Blob([JSON.stringify(library, null, 2)], {
+                            type: "application/json",
+                          }),
+                          "sheet-rules.json",
+                        )
+                      }
+                    >
+                      <Download size={16} />
+                      {t("ui.exportRuleLibrary")}
+                    </button>
+                  </div>
+                  <BackupControls
+                    disabled={!!busy || running}
+                    onExport={() =>
+                      void action(msg("backup.exporting"), async () => {
+                        await local("saveWorkspace", snapshot());
+                        const result = await local("exportBackup", undefined);
+                        downloadBlob(result.blob, result.name);
+                        setNotice(msg("backup.exported"));
+                      })
+                    }
+                    onImport={(file) =>
+                      action(msg("backup.importing"), async () => {
+                        const { library, workspace } = await local(
+                          "importBackup",
+                          file,
+                        );
+                        reset();
+                        setLibrary(library);
+                        setBatch(workspace.batch);
+                        setPendingImport(workspace.pendingImport);
+                        setSelectedTemplateId(workspace.selectedTemplateId);
+                        setDuplicatePolicy(
+                          workspace.duplicatePolicy ?? "keep-all",
+                        );
+                        setView("merge");
+                        setNotice(msg("backup.imported"));
+                      })
+                    }
+                  />
+                  <input
+                    type="file"
+                    accept=".json"
+                    ref={importRef}
+                    hidden
+                    aria-label={t("ui.importRuleLibrary")}
+                    onChange={async (e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      if (
+                        !confirm(
+                          t("ui.importingWillReplaceTheCurrentTemplateAnd"),
+                        )
+                      ) {
+                        e.target.value = "";
+                        return;
+                      }
+                      await action(msg("ui.importingRuleLibrary"), async () => {
+                        if (file.size > 2 * 1024 * 1024)
+                          throw new LocalizedError("ui.theRuleFileExceeds2Mb");
+                        const data = JSON.parse(await file.text());
+                        setLibrary(await local("importConfig", data));
+                        setAssignments((old) =>
+                          Object.fromEntries(
+                            Object.entries(old).map(([k, a]) => [
+                              k,
+                              { ...a, rule: null, confirmed: false },
+                            ]),
+                          ),
+                        );
+                        setStep(1);
+                        setSelectedTemplateId(null);
+                        setPreview([]);
+                        setJob(null);
+                        setNotice(
+                          msg("ui.ruleLibraryImportedConfirmTheMappingsFor"),
+                        );
+                      });
+                      e.target.value = "";
+                    }}
+                  />
+                </div>
+                <div className="panel section-panel">
+                  {!library.rules.length ? (
+                    <div className="large-empty">
+                      <Settings2 size={34} />
+                      <h2>{t("ui.noSourceRulesSavedYet")}</h2>
+                      <p>{t("ui.importASpreadsheetAndSaveIts")}</p>
+                      <button
+                        className="btn primary"
+                        onClick={() => {
+                          setView("merge");
+                          setStep(1);
+                        }}
+                      >
+                        {t("ui.importFiles122")}
+                        <ArrowRight size={16} />
+                      </button>
+                    </div>
+                  ) : (
+                    <table className="rules-table">
+                      <thead>
+                        <tr>
+                          <th>{t("ui.ruleName")}</th>
+                          <th>{t("ui.sourceHeaders")}</th>
+                          <th>{t("ui.targetMapping")}</th>
+                          <th>{t("ui.actions")}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {library.rules.map((r) => (
+                          <tr key={r.id}>
+                            <td>
+                              <strong>{r.name}</strong>
+                              <small>
+                                {t("ui.matchedByHeadersOnTheNextImport")}
+                              </small>
+                            </td>
+                            <td>
+                              <span className="header-tags">
+                                {r.headers.slice(0, 3).map((h) => (
+                                  <span key={h}>{h}</span>
+                                ))}
+                                {r.headers.length > 3 && (
+                                  <span>+{r.headers.length - 3}</span>
+                                )}
+                              </span>
+                            </td>
+                            <td>
+                              {t("ui.mappingColumns", {
+                                count: r.mappings.length,
+                              })}
+                            </td>
+                            <td>
+                              <div className="button-group">
+                                <button
+                                  className="btn subtle small"
+                                  onClick={() =>
+                                    setEditor({
+                                      rule: reconcileRule(r, library.template),
+                                    })
+                                  }
+                                >
+                                  {t("ui.edit")}
+                                </button>
+                                <button
+                                  className="icon-btn"
+                                  aria-label={t("ui.copy", { p0: r.name })}
+                                  onClick={() =>
+                                    setEditor({
+                                      rule: {
+                                        ...reconcileRule(r, library.template),
+                                        id: crypto.randomUUID(),
+                                        name: r.name + t("ui.copy130"),
+                                      },
+                                    })
+                                  }
+                                >
+                                  <Copy size={16} />
+                                </button>
+                                <button
+                                  className="icon-btn"
+                                  disabled={!!busy}
+                                  aria-label={t("ui.delete", { p0: r.name })}
+                                  onClick={() => {
+                                    if (
+                                      confirm(t("ui.delete132", { p0: r.name }))
+                                    )
+                                      void action(
+                                        msg("ui.deletingRule"),
+                                        async () => {
+                                          setLibrary(
+                                            await local("deleteRule", {
+                                              id: r.id,
+                                            }),
+                                          );
+                                        },
+                                      );
+                                  }}
+                                >
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  )}
+                </div>
+              </>
+            )}
+            {view === "template" && (
+              <TemplateManager
+                templates={savedTemplates}
+                busy={!!busy}
+                initialEdit={templateEditId}
+                returnToBatch={returnFromTemplate}
+                onReturn={() => {
                   setReturnFromTemplate(false);
                   setView("merge");
-                  setStep(2);
-                  setTemplatePrompt(false);
-                }
-              }}
-            />
-          )}
-          {view === "help" && (
-            <UserGuide
-              onReturn={() => {
-                setView("merge");
-              }}
-            />
-          )}
-          <footer className="page-footer">
-            <span>{t("ui.sheetMergerEverySourceOneConsistent")}</span>
-            <span>
-              <ShieldCheck size={13} />
-              {t("ui.localProcessingReusableRules")}
-            </span>
-          </footer>
-        </Suspense></main>
+                  goStep(2);
+                }}
+                perform={action}
+                validate={(document) => local("validateTemplate", document)}
+                register={registerTemplate}
+                remove={deleteTemplate}
+                onReset={resetTemplate}
+                onRegistered={(id) => {
+                  setNotice(msg("templates.saved"));
+                  if (returnFromTemplate) {
+                    setSelectedTemplateId(id);
+                    invalidateTemplate();
+                    setReturnFromTemplate(false);
+                    setView("merge");
+                    setStep(2);
+                    setTemplatePrompt(false);
+                  }
+                }}
+              />
+            )}
+            {view === "help" && (
+              <UserGuide
+                onReturn={() => {
+                  setView("merge");
+                }}
+              />
+            )}
+            <footer className="page-footer">
+              <span>{t("ui.sheetMergerEverySourceOneConsistent")}</span>
+              <span>
+                <ShieldCheck size={13} />
+                {t("ui.localProcessingReusableRules")}
+              </span>
+            </footer>
+          </Suspense>
+        </main>
       </div>
       {editor && (
         <RuleEditor
@@ -1826,7 +2052,9 @@ function ResultTable({
                     className="badge amber"
                     title={t("ui.duplicateGroup", { p0: r.duplicate_group })}
                   >
-                    {t(r.dropped?"duplicates.dropped":"ui.duplicateRetained")}
+                    {t(
+                      r.dropped ? "duplicates.dropped" : "ui.duplicateRetained",
+                    )}
                   </span>
                 ) : (
                   <span className="success-text">

@@ -119,6 +119,10 @@ export type RunRequest = {
   }[];
 };
 export type Workspace = {
+  pendingImport?: {
+    files: SourceFile[];
+    assignments: Record<string, Assignment>;
+  };
   duplicatePolicy?: DuplicatePolicy;
   batch: string;
   files: SourceFile[];
@@ -131,12 +135,12 @@ export type Workspace = {
 export type StoredFile = {
   id: string;
   batchId: string;
-  blob: File;
+  blob: Blob | ArrayBuffer;
   meta: SourceFile;
 };
 export type StoredJob = Job & {
   batchId: string;
-  output?: Blob;
+  output?: Blob | ArrayBuffer;
   created: string;
 };
 export type StoredRow = ResultRow & {

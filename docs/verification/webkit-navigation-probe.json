@@ -1,0 +1,12 @@
+{
+  "state": {
+    "enabled": true,
+    "headerValue": "true"
+  },
+  "fresh": false,
+  "diagnostic": {
+    "phase": "error",
+    "name": "TypeError",
+    "message": "Load failed"
+  }
+}
