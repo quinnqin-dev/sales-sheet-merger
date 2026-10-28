@@ -52,9 +52,13 @@ test("five steps work offline, output is typed, and files/results restore after 
   const requests:{method:string;url:string}[]=[];context.on("request",r=>requests.push({method:r.method(),url:r.url()}));
   const errors:string[]=[];page.on("pageerror",e=>errors.push(e.message));
   await open(page);await importLibrary(page);
+  await expect(page.getByText("Ready for offline use",{exact:true})).toBeVisible();
   await context.setOffline(true);
+  await page.reload();
+  await expect(page.getByRole("heading",{name:"Merge spreadsheets",exact:true})).toBeVisible();
   await uploadGrades(page);await confirmAndMerge(page);
   await expect(page.locator(".result-stat").nth(1).locator("strong")).toHaveText("24");
+  await page.screenshot({path:"../docs/verification/screenshots/offline-result.png",fullPage:true});
   const download=page.waitForEvent("download");await page.getByRole("button",{name:"Download merged Excel",exact:true}).click();
   const stream=await (await download).createReadStream();const chunks:Buffer[]=[];
   for await(const chunk of stream) chunks.push(Buffer.from(chunk));

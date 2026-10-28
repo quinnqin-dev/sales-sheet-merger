@@ -433,5 +433,9 @@
   "browser.newBatchBody": "当前批次、导入文件和结果会从浏览器中清除。已保存的模板和来源规则会保留，请先下载需要的结果。",
   "browser.clearing": "正在清除浏览器数据…",
   "browser.preparingDownload": "正在准备下载…",
-  "browser.downloadError": "无法保存结果。完整结果仍保存在此浏览器中，请重新下载。"
+  "browser.downloadError": "无法保存结果。完整结果仍保存在此浏览器中，请重新下载。",
+  "offline.updateBusy": "有新版本，合并完成后可刷新更新。",
+  "offline.updateAvailable": "有新版本，点此刷新。",
+  "offline.refresh": "刷新更新",
+  "offline.ready": "已可离线使用"
 }

@@ -1,3 +1,4 @@
+import { OfflineStatus } from "./OfflineStatus";
 import {
   I18nProvider,
   useI18n,
@@ -734,6 +735,7 @@ function App() {
             </span>
           </div>
         </header>
+        <OfflineStatus running={running} />
         <main>
           {error && (
             <div role="alert" className="alert error">

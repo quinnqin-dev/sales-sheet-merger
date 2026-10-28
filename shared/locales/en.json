@@ -433,5 +433,9 @@
   "browser.newBatchBody": "The current batch, imported files, and results will be removed from browser storage. Saved templates and source rules will be kept. Download any result you need first.",
   "browser.clearing": "Clearing browser data…",
   "browser.preparingDownload": "Preparing download…",
-  "browser.downloadError": "Could not save the result. Your completed result is still saved in this browser; try downloading again."
+  "browser.downloadError": "Could not save the result. Your completed result is still saved in this browser; try downloading again.",
+  "offline.updateBusy": "A new version is ready. Refresh after this merge finishes.",
+  "offline.updateAvailable": "A new version is available. Refresh to update.",
+  "offline.refresh": "Refresh",
+  "offline.ready": "Ready for offline use"
 }

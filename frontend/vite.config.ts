@@ -1,7 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
+import { offlineBuild } from "./offline-build";
 export default defineConfig({
-  plugins: [react()],
+  plugins: [react(), offlineBuild()],
   preview: {
     headers: {
       "Content-Security-Policy":
