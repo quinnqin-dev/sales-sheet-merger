@@ -20,7 +20,7 @@ test('files, mappings, complete output and exact totals survive restore; interru
   assert.equal(job.status,'done',JSON.stringify(job));assert.equal(job.summary.valid,3);assert.equal(job.summary.issues,1);assert.equal(job.summary.duplicate_rows,2);assert.equal(job.summary.totals.value,'0.4');
   const duplicates=await op.getRows({id:job.id,kind:'valid',page:1,duplicates:true});assert.equal(duplicates.total,2);assert.equal(duplicates.rows[0].duplicate_group,duplicates.rows[1].duplicate_group);
   const result=await op.exportJob({id:job.id}),book=XLSX.read(await result.blob.arrayBuffer(),{type:'array'});
-  assert.deepEqual(book.SheetNames,['合并明细']);assert.equal(book.Sheets['合并明细'].A2.v,'0001');assert.equal(book.Sheets['合并明细'].B2.t,'n');assert.equal(XLSX.utils.sheet_to_json(book.Sheets['合并明细']).length,3);
+  assert.deepEqual(book.SheetNames,['Merged Data']);assert.equal(book.Sheets['Merged Data'].A2.v,'0001');assert.equal(book.Sheets['Merged Data'].B2.t,'n');assert.equal(XLSX.utils.sheet_to_json(book.Sheets['Merged Data']).length,3);
   const restored=await restore();assert.equal(restored.workspace.job.status,'done');assert.deepEqual(restored.workspace.assignments,state.assignments);assert.equal(restored.workspace.files.length,1);
   // Simulate a page closing after inputs committed but before an output committed.
   const db=await database(),interrupted={...job,id:'interrupted',batchId:batch,status:'running',created:new Date().toISOString()};
